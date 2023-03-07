@@ -4,7 +4,7 @@ A/B Smartly - Android SDK
 
 ## Compatibility
 
-The A/B Smartly Android SDK is compatible with Android 4.5 and later (API level 21+).
+The A/B Smartly Android SDK is compatible with Android 5 and later (API level 21+).
 It uses [A/B Smartly - Java SDK.](https://github.com/absmartly/java-sdk)
 
 The `android.permission.INTERNET` permission is required. To add this permission to your application ensure the following line is present in the `AndroidManifest.xml` file:
