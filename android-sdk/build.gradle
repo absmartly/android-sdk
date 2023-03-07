@@ -70,7 +70,7 @@ afterEvaluate {
             }
         }
         repositories {
-            maven {
+            /*maven {
                 def releaseUrl = "https://s01.oss.sonatype.org/service/local/"
                 def snapshotUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
                 url = is_release_version ? releaseUrl : snapshotUrl
@@ -78,7 +78,7 @@ afterEvaluate {
                     username System.getenv('ossrh.username')
                     password System.getenv('ossrh.password')
                 }
-            }
+            }*/
             //mavenLocal()
         }
     }
