@@ -3,7 +3,7 @@ apply plugin: "signing"
 apply plugin: "maven-publish"
 
 ext {
-    VERSION = "1.0.0_SNAPSHOT"
+    VERSION = "1.0.0"
     GROUP_ID = "com.absmartly.sdk"
     is_release_version = !VERSION.endsWith("SNAPSHOT")
 }
@@ -47,7 +47,7 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
-    implementation 'com.absmartly.sdk:core-api:1.5.4'
+    implementation 'com.absmartly.sdk:core-api:1.6.0'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.4.2'
     implementation 'org.conscrypt:conscrypt-android:2.5.2'
 }

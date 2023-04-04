@@ -77,12 +77,12 @@ public class SqliteAndroidLocalCache extends SQLiteOpenHelper implements LocalCa
 
 
     @Override
-    public void writeEvent(PublishEvent publishEvent) {
+    public void writePublishEvent(PublishEvent publishEvent) {
         this.getWritableDatabase().execSQL("insert into events (event) values (?)", new Object[] { serializeEvent(publishEvent) });
     }
 
     @Override
-    public List<PublishEvent> retrieveEvents() {
+    public List<PublishEvent> retrievePublishEvents() {
         Cursor cursor = this.getWritableDatabase().rawQuery("select event from events", null);
         List<PublishEvent> events = new ArrayList<PublishEvent>();
         while(cursor.moveToNext()){
