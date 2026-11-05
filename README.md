@@ -342,8 +342,18 @@ context.publish();
 
 The `close()` and `closeAsync()` methods will ensure all events have been published to the A/B Smartly collector, like `publish()`, and will also "seal" the context, throwing an error if any method that could generate an event is called.
 
+`close()` blocks until pending events have been published, so only call it off the main thread. On the main thread (for example in `onDestroy()`), use `closeAsync()` and handle failures on the returned future:
+
 ```java
+// Background thread
 context.close();
+
+// Main thread
+context.closeAsync()
+    .exceptionally(ex -> {
+        Log.e("ABSmartly", "failed to close context", ex);
+        return null;
+    });
 ```
 
 ### Custom Event Logger
@@ -438,6 +448,7 @@ public class MyApplication extends Application {
 ```java
 import android.os.Bundle;
 import android.content.SharedPreferences;
+import android.util.Log;
 import androidx.appcompat.app.AppCompatActivity;
 import com.absmartly.android.sdk.ABSmartlyAndroid;
 import com.absmartly.sdk.*;
@@ -487,7 +498,13 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (absmartlyContext != null) {
-            absmartlyContext.close();
+            // closeAsync() flushes pending events without blocking the UI thread.
+            // Do not call close() here: it waits for the publish request to finish.
+            absmartlyContext.closeAsync()
+                .exceptionally(ex -> {
+                    Log.e("ABSmartly", "failed to close context", ex);
+                    return null;
+                });
         }
     }
 
@@ -511,6 +528,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.content.SharedPreferences;
+import android.util.Log;
 import androidx.fragment.app.Fragment;
 import com.absmartly.android.sdk.ABSmartlyAndroid;
 import com.absmartly.sdk.*;
@@ -546,7 +564,13 @@ public class ProductFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         if (absmartlyContext != null) {
-            absmartlyContext.close();
+            // closeAsync() flushes pending events without blocking the UI thread.
+            // Do not call close() here: it waits for the publish request to finish.
+            absmartlyContext.closeAsync()
+                .exceptionally(ex -> {
+                    Log.e("ABSmartly", "failed to close context", ex);
+                    return null;
+                });
         }
     }
 
@@ -569,6 +593,7 @@ Cancel in-flight context creation when the Activity or Fragment is destroyed:
 
 ```java
 import android.os.Bundle;
+import android.util.Log;
 import androidx.appcompat.app.AppCompatActivity;
 import com.absmartly.android.sdk.ABSmartlyAndroid;
 import com.absmartly.sdk.*;
@@ -605,7 +630,13 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (absmartlyContext != null) {
-            absmartlyContext.close();
+            // closeAsync() flushes pending events without blocking the UI thread.
+            // Do not call close() here: it waits for the publish request to finish.
+            absmartlyContext.closeAsync()
+                .exceptionally(ex -> {
+                    Log.e("ABSmartly", "failed to close context", ex);
+                    return null;
+                });
         }
     }
 }
