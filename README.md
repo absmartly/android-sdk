@@ -58,7 +58,7 @@ This example assumes an API Key, an Application, and an Environment have been cr
 
 #### Recommended: ABSmartlyAndroid Wrapper (Android Entry Point)
 
-`ABSmartlyAndroid` is the recommended Android entry point. It wires the Java SDK and the `SqliteAndroidLocalCache` together in a single step, so you don't need to configure each component separately.
+`ABSmartlyAndroid` is the recommended Android entry point. It creates the Java SDK and a `SqliteAndroidLocalCache` in a single step, so you don't need to configure each component separately. The cache is not used by the SDK automatically; access it with `getCache()`.
 
 ```java
 import com.absmartly.android.sdk.ABSmartlyAndroid;
@@ -131,12 +131,16 @@ final ABSmartlyConfig sdkConfig = ABSmartlyConfig.create()
 final ABSmartly sdk = ABSmartly.create(sdkConfig);
 
 // When you are done with the SDK, close both. ABSmartly.close() closes the Client;
-// the cache is a SQLiteOpenHelper and must be closed separately.
-sdk.close();
-cache.close();
+// the cache is a SQLiteOpenHelper and must be closed separately. Close the cache in a
+// finally block so it is released even if sdk.close() throws.
+try {
+    sdk.close();
+} finally {
+    cache.close();
+}
 ```
 
-`ABSmartlyAndroid` does this wiring and closing for you: its `close()` closes both the Java SDK and the cache.
+`ABSmartlyAndroid` creates the Java SDK and the cache together and closes both in its `close()` (the cache is closed even if closing the Java SDK fails). It does not plug the cache into the SDK either: the SDK still uses its default `ContextDataProvider` and `ContextEventHandler`, so use `getCache()` to read and write cached data yourself.
 
 #### Android 6.0 or earlier
 
