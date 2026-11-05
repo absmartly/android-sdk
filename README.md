@@ -472,10 +472,20 @@ public class MainActivity extends AppCompatActivity {
 
         absmartlyContext.waitUntilReadyAsync()
             .thenAccept(ctx -> {
-                runOnUiThread(() -> setupUI(ctx));
+                runOnUiThread(() -> {
+                    // Readiness may complete while the Activity is being destroyed.
+                    // onDestroy runs on the UI thread too, so this check cannot race with it.
+                    if (!isDestroyed() && ctx == absmartlyContext) {
+                        setupUI(ctx);
+                    }
+                });
             })
             .exceptionally(throwable -> {
-                runOnUiThread(() -> setupDefaultUI());
+                runOnUiThread(() -> {
+                    if (!isDestroyed()) {
+                        setupDefaultUI();
+                    }
+                });
                 return null;
             });
     }
@@ -498,9 +508,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (absmartlyContext != null) {
+            final Context closing = absmartlyContext;
+            // Clear the field first so queued UI callbacks see the context is gone.
+            absmartlyContext = null;
             // closeAsync() flushes pending events without blocking the UI thread.
             // Do not call close() here: it waits for the publish request to finish.
-            absmartlyContext.closeAsync()
+            closing.closeAsync()
                 .exceptionally(ex -> {
                     Log.e("ABSmartly", "failed to close context", ex);
                     return null;
@@ -545,11 +558,21 @@ public class ProductFragment extends Fragment {
         final ContextConfig contextConfig = ContextConfig.create()
             .setUnit("device_id", getDeviceId());
 
-        absmartlyContext = sdk.createContext(contextConfig);
+        final Context requested = sdk.createContext(contextConfig);
+        absmartlyContext = requested;
 
-        absmartlyContext.waitUntilReadyAsync()
+        final View view = inflater.inflate(R.layout.fragment_product, container, false);
+
+        requested.waitUntilReadyAsync()
             .thenAccept(ctx -> {
-                requireActivity().runOnUiThread(() -> {
+                // Post to this view rather than requireActivity(): the Fragment may
+                // already be detached when readiness completes on a background thread.
+                view.post(() -> {
+                    // Skip if this view was destroyed (its context is closing) or
+                    // replaced by a new view with its own context.
+                    if (!isAdded() || getView() != view || absmartlyContext != requested) {
+                        return;
+                    }
                     int treatment = ctx.getTreatment("exp_product_layout");
                     if (treatment == 1) {
                         // apply treatment layout changes
@@ -557,16 +580,19 @@ public class ProductFragment extends Fragment {
                 });
             });
 
-        return inflater.inflate(R.layout.fragment_product, container, false);
+        return view;
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         if (absmartlyContext != null) {
+            final Context closing = absmartlyContext;
+            // Clear the field first so queued UI callbacks see the context is gone.
+            absmartlyContext = null;
             // closeAsync() flushes pending events without blocking the UI thread.
             // Do not call close() here: it waits for the publish request to finish.
-            absmartlyContext.closeAsync()
+            closing.closeAsync()
                 .exceptionally(ex -> {
                     Log.e("ABSmartly", "failed to close context", ex);
                     return null;
@@ -617,7 +643,13 @@ public class MainActivity extends AppCompatActivity {
         contextFuture = absmartlyContext.waitUntilReadyAsync();
 
         contextFuture.thenAccept(ctx -> {
-            runOnUiThread(() -> setupUI(ctx));
+            runOnUiThread(() -> {
+                // Cancelling an already-completed future cannot retract this queued
+                // runnable, so recheck the lifecycle before touching the context.
+                if (!isDestroyed() && ctx == absmartlyContext) {
+                    setupUI(ctx);
+                }
+            });
         });
     }
 
@@ -630,9 +662,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (absmartlyContext != null) {
+            final Context closing = absmartlyContext;
+            // Clear the field first so queued UI callbacks see the context is gone.
+            absmartlyContext = null;
             // closeAsync() flushes pending events without blocking the UI thread.
             // Do not call close() here: it waits for the publish request to finish.
-            absmartlyContext.closeAsync()
+            closing.closeAsync()
                 .exceptionally(ex -> {
                     Log.e("ABSmartly", "failed to close context", ex);
                     return null;
