@@ -5,8 +5,8 @@ import android.content.Context;
 import androidx.annotation.NonNull;
 
 import com.absmartly.android.sdk.cache.SqliteAndroidLocalCache;
-import com.absmartly.sdk.ABsmartly;
-import com.absmartly.sdk.ABsmartlyConfig;
+import com.absmartly.sdk.ABSmartly;
+import com.absmartly.sdk.ABSmartlyConfig;
 import com.absmartly.sdk.Client;
 import com.absmartly.sdk.ClientConfig;
 import com.absmartly.sdk.ContextConfig;
@@ -36,7 +36,7 @@ public class ABSmartlyAndroid implements Closeable {
         return new Builder();
     }
 
-    private final ABsmartly sdk;
+    private final ABSmartly sdk;
     private final SqliteAndroidLocalCache cache;
 
     private ABSmartlyAndroid(
@@ -53,13 +53,13 @@ public class ABSmartlyAndroid implements Closeable {
                 .setApplication(application)
                 .setEnvironment(environment);
 
-        final ABsmartlyConfig sdkConfig = ABsmartlyConfig.create()
+        final ABSmartlyConfig sdkConfig = ABSmartlyConfig.create()
                 .setClient(Client.create(clientConfig));
 
-        this.sdk = ABsmartly.create(sdkConfig);
+        this.sdk = ABSmartly.create(sdkConfig);
     }
 
-    ABSmartlyAndroid(@NonNull ABsmartly sdk, @NonNull SqliteAndroidLocalCache cache) {
+    ABSmartlyAndroid(@NonNull ABSmartly sdk, @NonNull SqliteAndroidLocalCache cache) {
         this.sdk = sdk;
         this.cache = cache;
     }
@@ -72,7 +72,7 @@ public class ABSmartlyAndroid implements Closeable {
         return sdk.createContextWith(config, data);
     }
 
-    public ABsmartly getSdk() {
+    public ABSmartly getSdk() {
         return sdk;
     }
 
