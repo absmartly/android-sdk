@@ -16,7 +16,7 @@ For the full core API reference, please refer to the [Java SDK documentation](ht
 
 The A/B Smartly Android SDK is compatible with Android 5.0 and later (API level 21+).
 
-The `android.permission.INTERNET` permission is required. To add this permission to your application ensure the following line is present in the `AndroidManifest.xml` file:
+The `android.permission.INTERNET` permission is required. To add this permission to your application, ensure the following line is present in the `AndroidManifest.xml` file:
 ```xml
 <uses-permission android:name="android.permission.INTERNET"/>
 ```
@@ -84,7 +84,7 @@ final ABSmartlyAndroid sdk = ABSmartlyAndroid.create(
 );
 ```
 
-`ABSmartlyAndroid` delegates `createContext`, `createContextWith`, and `close` to the underlying Java SDK and exposes `getCache()` to access the `SqliteAndroidLocalCache` directly. Call `getSdk()` to access the underlying `ABsmartly` Java SDK instance for advanced use cases.
+`ABSmartlyAndroid` delegates `createContext` and `createContextWith` to the underlying Java SDK, closes both the Java SDK and the cache in `close()`, and exposes `getCache()` to access the `SqliteAndroidLocalCache` directly. Call `getSdk()` to access the underlying `ABSmartly` Java SDK instance for advanced use cases.
 
 #### Advanced Configuration (Java SDK directly)
 
@@ -101,21 +101,21 @@ final ClientConfig clientConfig = ClientConfig.create()
 
 final Client absmartlyClient = Client.create(clientConfig);
 
-final ABsmartlyConfig sdkConfig = ABsmartlyConfig.create()
+final ABSmartlyConfig sdkConfig = ABSmartlyConfig.create()
     .setClient(absmartlyClient);
 
-final ABsmartly sdk = ABsmartly.create(sdkConfig);
+final ABSmartly sdk = ABSmartly.create(sdkConfig);
 ```
 
 #### Initializing with SqliteAndroidLocalCache manually
 
-If you are using the Java SDK directly and want to wire the SQLite cache yourself:
+If you are using the Java SDK directly, you can create the SQLite cache alongside it. `ABSmartlyConfig` has no cache setting, so the cache is not used by the SDK automatically: the `ContextDataProvider` and `ContextEventHandler` are still the defaults created from the `Client`. Read and write the cache yourself (see [SqliteAndroidLocalCache](#sqliteandroidlocalcache)), or plug it into your own `ContextDataProvider`/`ContextEventHandler` implementations via `setContextDataProvider()`/`setContextEventHandler()`.
 
 ```java
 import com.absmartly.sdk.*;
 import com.absmartly.android.sdk.cache.SqliteAndroidLocalCache;
 
-SqliteAndroidLocalCache cache = new SqliteAndroidLocalCache(getApplicationContext());
+final SqliteAndroidLocalCache cache = new SqliteAndroidLocalCache(getApplicationContext());
 
 final ClientConfig clientConfig = ClientConfig.create()
     .setEndpoint("https://your-company.absmartly.io/v1")
@@ -125,11 +125,18 @@ final ClientConfig clientConfig = ClientConfig.create()
 
 final Client absmartlyClient = Client.create(clientConfig);
 
-final ABsmartlyConfig sdkConfig = ABsmartlyConfig.create()
+final ABSmartlyConfig sdkConfig = ABSmartlyConfig.create()
     .setClient(absmartlyClient);
 
-final ABsmartly sdk = ABsmartly.create(sdkConfig);
+final ABSmartly sdk = ABSmartly.create(sdkConfig);
+
+// When you are done with the SDK, close both. ABSmartly.close() closes the Client;
+// the cache is a SQLiteOpenHelper and must be closed separately.
+sdk.close();
+cache.close();
 ```
+
+`ABSmartlyAndroid` does this wiring and closing for you: its `close()` closes both the Java SDK and the cache.
 
 #### Android 6.0 or earlier
 
@@ -152,10 +159,10 @@ final DefaultHTTPClient httpClient = DefaultHTTPClient.create(httpClientConfig);
 
 final Client absmartlyClient = Client.create(clientConfig, httpClient);
 
-final ABsmartlyConfig sdkConfig = ABsmartlyConfig.create()
+final ABSmartlyConfig sdkConfig = ABSmartlyConfig.create()
     .setClient(absmartlyClient);
 
-final ABsmartly sdk = ABsmartly.create(sdkConfig);
+final ABSmartly sdk = ABSmartly.create(sdkConfig);
 ```
 
 **SDK Options**
@@ -163,7 +170,7 @@ final ABsmartly sdk = ABsmartly.create(sdkConfig);
 | Config                  | Type                              | Required? |   Default   | Description                                                                                                                                                                   |
 | :---------------------- | :-------------------------------- | :-------: | :---------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | endpoint                | `String`                          |  &#9989;  | `null`      | The URL to your API endpoint. Most commonly `"https://your-company.absmartly.io/v1"`                                                                                          |
-| apiKey                  | `String`                          |  &#9989;  | `null`      | Your API key which can be found on the Web Console.                                                                                                                           |
+| apiKey                  | `String`                          |  &#9989;  | `null`      | Your API key, which can be found on the Web Console.                                                                                                                          |
 | environment             | `String`                          |  &#9989;  | `null`      | The environment of the platform where the SDK is installed. Environments are created on the Web Console and should match the available environments in your infrastructure.   |
 | application             | `String`                          |  &#9989;  | `null`      | The name of the application where the SDK is installed. Applications are created on the Web Console and should match the applications where your experiments will be running. |
 | timeout                 | `int`                             |  &#10060; | `3000`      | HTTP connection timeout in milliseconds                                                                                                                                        |
@@ -175,6 +182,8 @@ final ABsmartly sdk = ABsmartly.create(sdkConfig);
 | audienceDeserializer    | `AudienceDeserializer`            |  &#10060; | auto        | Custom deserializer for audience data (advanced usage)                                                                                                                        |
 
 ## Creating a New Context
+
+The examples in this README build maps with `HashMap` rather than `Map.of()`, which is a Java 9 API only available on Android 11 (API 30) and later, while this SDK supports API 21+.
 
 ### Synchronously
 
@@ -217,7 +226,7 @@ assert(context.isReady()); // no need to wait
 
 ### Refreshing the Context with Fresh Experiment Data
 
-For long-running contexts, the context is usually created once when the application is first started. However, any experiments started after the context was created will not be triggered. To mitigate this, use `setRefreshInterval()` on the context config.
+For long-running contexts, the context is usually created once when the application starts. However, any experiments started after the context was created will not be triggered. To mitigate this, use `setRefreshInterval()` on the context config.
 
 ```java
 final ContextConfig contextConfig = ContextConfig.create()
@@ -238,9 +247,9 @@ You can add additional units to a context by calling `setUnit()` or `setUnits()`
 ```java
 context.setUnit("db_user_id", "1000013");
 
-context.setUnits(Map.of(
-    "db_user_id", "1000013"
-));
+final Map<String, String> units = new HashMap<>();
+units.put("db_user_id", "1000013");
+context.setUnits(units);
 ```
 
 ## Basic Usage
@@ -258,7 +267,7 @@ if (context.getTreatment("exp_test_experiment") == 0) {
 ### Treatment Variables
 
 ```java
-final Object variable = context.getVariable("my_variable");
+final Object variable = context.getVariableValue("my_variable", "default");
 ```
 
 ### Peek at Treatment Variants
@@ -276,7 +285,7 @@ if (context.peekTreatment("exp_test_experiment") == 0) {
 #### Peeking at Variables
 
 ```java
-final Object variable = context.peekVariable("my_variable");
+final Object variable = context.peekVariableValue("my_variable", "default");
 ```
 
 ### Overriding Treatment Variants
@@ -286,10 +295,10 @@ During development, it is useful to force a treatment for an experiment. This ca
 ```java
 context.setOverride("exp_test_experiment", 1);
 
-context.setOverrides(Map.of(
-    "exp_test_experiment", 1,
-    "exp_another_experiment", 0
-));
+final Map<String, Integer> overrides = new HashMap<>();
+overrides.put("exp_test_experiment", 1);
+overrides.put("exp_another_experiment", 0);
+context.setOverrides(overrides);
 ```
 
 ## Advanced
@@ -301,9 +310,9 @@ Attributes can be set before the context is ready.
 ```java
 context.setAttribute("user_agent", "Android/12");
 
-context.setAttributes(Map.of(
-    "customer_age", "new_customer"
-));
+final Map<String, Object> attributes = new HashMap<>();
+attributes.put("customer_age", "new_customer");
+context.setAttributes(attributes);
 ```
 
 ### Tracking Goals
@@ -311,10 +320,10 @@ context.setAttributes(Map.of(
 Goals are created in the A/B Smartly web console.
 
 ```java
-context.track("payment", Map.of(
-    "item_count", 1,
-    "total_amount", 1999.99
-));
+final Map<String, Object> properties = new HashMap<>();
+properties.put("item_count", 1);
+properties.put("total_amount", 1999.99);
+context.track("payment", properties);
 ```
 
 ### Publishing Pending Data
@@ -367,7 +376,7 @@ Usage:
 
 ```java
 // For all contexts, during SDK initialization
-final ABsmartlyConfig sdkConfig = ABsmartlyConfig.create();
+final ABSmartlyConfig sdkConfig = ABSmartlyConfig.create();
 sdkConfig.setContextEventLogger(new CustomEventLogger());
 
 // OR during a particular context initialization
@@ -426,6 +435,7 @@ public class MyApplication extends Application {
 import android.os.Bundle;
 import android.content.SharedPreferences;
 import androidx.appcompat.app.AppCompatActivity;
+import com.absmartly.android.sdk.ABSmartlyAndroid;
 import com.absmartly.sdk.*;
 import java.util.UUID;
 
@@ -437,7 +447,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        ABsmartly sdk = MyApplication.getAbsmartly();
+        ABSmartlyAndroid sdk = MyApplication.getAbsmartly();
         String deviceId = getOrCreateDeviceId();
 
         final ContextConfig contextConfig = ContextConfig.create()
@@ -496,8 +506,11 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.content.SharedPreferences;
 import androidx.fragment.app.Fragment;
+import com.absmartly.android.sdk.ABSmartlyAndroid;
 import com.absmartly.sdk.*;
+import java.util.UUID;
 
 public class ProductFragment extends Fragment {
 
@@ -505,7 +518,7 @@ public class ProductFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        ABsmartly sdk = MyApplication.getAbsmartly();
+        ABSmartlyAndroid sdk = MyApplication.getAbsmartly();
 
         final ContextConfig contextConfig = ContextConfig.create()
             .setUnit("device_id", getDeviceId());
@@ -534,9 +547,14 @@ public class ProductFragment extends Fragment {
     }
 
     private String getDeviceId() {
-        return requireActivity()
-            .getSharedPreferences("absmartly", android.content.Context.MODE_PRIVATE)
-            .getString("device_id", "");
+        SharedPreferences prefs = requireActivity()
+            .getSharedPreferences("absmartly", android.content.Context.MODE_PRIVATE);
+        String deviceId = prefs.getString("device_id", null);
+        if (deviceId == null) {
+            deviceId = UUID.randomUUID().toString();
+            prefs.edit().putString("device_id", deviceId).apply();
+        }
+        return deviceId;
     }
 }
 ```
@@ -548,6 +566,7 @@ Cancel in-flight context creation when the Activity or Fragment is destroyed:
 ```java
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
+import com.absmartly.android.sdk.ABSmartlyAndroid;
 import com.absmartly.sdk.*;
 import java8.util.concurrent.CompletableFuture;
 
@@ -560,7 +579,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        ABsmartly sdk = MyApplication.getAbsmartly();
+        ABSmartlyAndroid sdk = MyApplication.getAbsmartly();
 
         final ContextConfig contextConfig = ContextConfig.create()
             .setUnit("device_id", getOrCreateDeviceId());
