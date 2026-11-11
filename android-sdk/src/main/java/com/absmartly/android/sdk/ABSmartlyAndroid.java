@@ -59,11 +59,6 @@ public class ABSmartlyAndroid implements Closeable {
         this.sdk = ABSmartly.create(sdkConfig);
     }
 
-    ABSmartlyAndroid(@NonNull ABSmartly sdk, @NonNull SqliteAndroidLocalCache cache) {
-        this.sdk = sdk;
-        this.cache = cache;
-    }
-
     public com.absmartly.sdk.Context createContext(@NonNull ContextConfig config) {
         return sdk.createContext(config);
     }

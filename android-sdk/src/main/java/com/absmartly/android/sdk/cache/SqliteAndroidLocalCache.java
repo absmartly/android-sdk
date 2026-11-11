@@ -71,32 +71,12 @@ public class SqliteAndroidLocalCache extends SQLiteOpenHelper {
         }
     }
 
-    @NonNull
-    private String serializeEvent(@NonNull PublishEvent event) {
-        return serialize(event);
-    }
-
-    @Nullable
-    private PublishEvent deserializeEvent(@Nullable String eventStr) {
-        return deserialize(eventStr, PublishEvent.class);
-    }
-
-    @NonNull
-    private String serializeContext(@NonNull ContextData context) {
-        return serialize(context);
-    }
-
-    @Nullable
-    private ContextData deserializeContext(@Nullable String contextStr) {
-        return deserialize(contextStr, ContextData.class);
-    }
-
     public void writePublishEvent(@NonNull PublishEvent publishEvent) {
         try {
             final SQLiteDatabase db = getWritableDatabase();
             db.beginTransaction();
             try {
-                db.execSQL("INSERT INTO events (event) VALUES (?)", new Object[]{serializeEvent(publishEvent)});
+                db.execSQL("INSERT INTO events (event) VALUES (?)", new Object[]{serialize(publishEvent)});
                 db.setTransactionSuccessful();
             } finally {
                 db.endTransaction();
@@ -104,9 +84,6 @@ public class SqliteAndroidLocalCache extends SQLiteOpenHelper {
         } catch (SQLiteException e) {
             Log.e(TAG, "Failed to write publish event", e);
             throw new CacheOperationException("Failed to write publish event", e);
-        } catch (CacheSerializationException e) {
-            Log.e(TAG, "Failed to serialize publish event", e);
-            throw e;
         }
     }
 
@@ -121,7 +98,7 @@ public class SqliteAndroidLocalCache extends SQLiteOpenHelper {
                 List<PublishEvent> events = new ArrayList<>();
                 while (cursor.moveToNext()) {
                     String eventStr = cursor.getString(0);
-                    PublishEvent event = deserializeEvent(eventStr);
+                    PublishEvent event = deserialize(eventStr, PublishEvent.class);
                     if (event != null) {
                         events.add(event);
                     } else {
@@ -150,7 +127,7 @@ public class SqliteAndroidLocalCache extends SQLiteOpenHelper {
             db.beginTransaction();
             try {
                 db.execSQL("DELETE FROM context");
-                db.execSQL("INSERT INTO context (context) VALUES (?)", new Object[]{serializeContext(contextData)});
+                db.execSQL("INSERT INTO context (context) VALUES (?)", new Object[]{serialize(contextData)});
                 db.setTransactionSuccessful();
             } finally {
                 db.endTransaction();
@@ -158,9 +135,6 @@ public class SqliteAndroidLocalCache extends SQLiteOpenHelper {
         } catch (SQLiteException e) {
             Log.e(TAG, "Failed to write context data", e);
             throw new CacheOperationException("Failed to write context data", e);
-        } catch (CacheSerializationException e) {
-            Log.e(TAG, "Failed to serialize context data", e);
-            throw e;
         }
     }
 
@@ -172,7 +146,7 @@ public class SqliteAndroidLocalCache extends SQLiteOpenHelper {
             cursor = db.rawQuery("SELECT context FROM context ORDER BY id DESC LIMIT 1", null);
             if (cursor.moveToNext()) {
                 String contextStr = cursor.getString(0);
-                return deserializeContext(contextStr);
+                return deserialize(contextStr, ContextData.class);
             }
             return null;
         } catch (SQLiteException e) {
