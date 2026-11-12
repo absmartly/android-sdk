@@ -167,10 +167,32 @@ public class ABSmartlyAndroidTest {
     }
 
     @Test
+    public void constructionFailure_closesTheTransport() {
+        final RecordingHTTPClient http = new RecordingHTTPClient();
+        try {
+            // Non-empty, so it passes the wrapper's checks, but core-api's Client rejects the scheme.
+            new ABSmartlyAndroid("ftp://test.absmartly.io/v1", "key", "app", "env", null, androidContext,
+                    () -> http);
+            fail("expected IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            assertTrue(e.getMessage(), e.getMessage().contains("protocol"));
+        }
+        assertTrue("the transport must be closed when construction fails", http.isClosed());
+    }
+
+    @Test
+    public void close_closesTheTransport() throws IOException {
+        final RecordingHTTPClient http = new RecordingHTTPClient();
+        new ABSmartlyAndroid("https://test.absmartly.io/v1", "key", "app", "env", null, androidContext,
+                () -> http).close();
+        assertTrue(http.isClosed());
+    }
+
+    @Test
     public void close_dropsQueuedDelayedPublishAfterClose() throws Exception {
         final RecordingHTTPClient http = new RecordingHTTPClient();
         final ABSmartlyAndroid sdk = new ABSmartlyAndroid("https://test.absmartly.io/v1", "key", "app", "env",
-                null, androidContext, http);
+                null, androidContext, () -> http);
         // A long publish delay queues a timer on the wrapper's scheduler without publishing.
         final com.absmartly.sdk.Context context = sdk.createContextWith(
                 ContextConfig.create().setUnit("session_id", "abc").setPublishDelay(60_000),
@@ -190,7 +212,7 @@ public class ABSmartlyAndroidTest {
     public void close_afterContextClose_publishesPendingEventsFirst() throws Exception {
         final RecordingHTTPClient http = new RecordingHTTPClient();
         final ABSmartlyAndroid sdk = new ABSmartlyAndroid("https://test.absmartly.io/v1", "key", "app", "env",
-                null, androidContext, http);
+                null, androidContext, () -> http);
         final com.absmartly.sdk.Context context = sdk.createContextWith(
                 ContextConfig.create().setUnit("session_id", "abc").setPublishDelay(60_000),
                 new ContextData());

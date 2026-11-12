@@ -52,7 +52,7 @@ public class SystemAttributesTest {
 
     private ABSmartlyAndroid create(String applicationVersion) {
         sdk = new ABSmartlyAndroid("https://test.absmartly.io/v1", "key", "android-app", "production",
-                applicationVersion, androidContext, http);
+                applicationVersion, androidContext, () -> http);
         return sdk;
     }
 

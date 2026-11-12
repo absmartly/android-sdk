@@ -45,7 +45,8 @@ public class ABSmartlyAndroid implements Closeable {
         Objects.requireNonNull(application, "application is required");
         Objects.requireNonNull(environment, "environment is required");
         Objects.requireNonNull(androidContext, "Android Context is required");
-        return new ABSmartlyAndroid(endpoint, apiKey, application, environment, null, androidContext, null);
+        return new ABSmartlyAndroid(endpoint, apiKey, application, environment, null, androidContext,
+                defaultTransport(null));
     }
 
     public static Builder builder() {
@@ -56,7 +57,28 @@ public class ABSmartlyAndroid implements Closeable {
     private final SqliteAndroidLocalCache cache;
     private final ScheduledThreadPoolExecutor scheduler;
 
-    // Package-private so tests can supply the HTTP transport; null uses DefaultHTTPClient.
+    /** Creates the HTTP transport. The wrapper owns it and closes it in close(). */
+    interface TransportFactory {
+        @NonNull
+        HTTPClient create();
+    }
+
+    @NonNull
+    static TransportFactory defaultTransport(@Nullable final Provider securityProvider) {
+        return new TransportFactory() {
+            @NonNull
+            @Override
+            public HTTPClient create() {
+                final DefaultHTTPClientConfig config = DefaultHTTPClientConfig.create();
+                if (securityProvider != null) {
+                    config.setSecurityProvider(securityProvider);
+                }
+                return DefaultHTTPClient.create(config);
+            }
+        };
+    }
+
+    // Package-private so tests can supply the HTTP transport.
     ABSmartlyAndroid(
             @NonNull String endpoint,
             @NonNull String apiKey,
@@ -64,14 +86,12 @@ public class ABSmartlyAndroid implements Closeable {
             @NonNull String environment,
             @Nullable String applicationVersion,
             @NonNull Context androidContext,
-            @Nullable HTTPClient httpClient) {
+            @NonNull TransportFactory transportFactory) {
         requireNonEmpty(endpoint, "endpoint is required");
         requireNonEmpty(apiKey, "apiKey is required");
         requireNonEmpty(application, "application is required");
         requireNonEmpty(environment, "environment is required");
         Objects.requireNonNull(androidContext, "Android Context is required");
-
-        this.cache = new SqliteAndroidLocalCache(androidContext.getApplicationContext());
 
         final ClientConfig clientConfig = ClientConfig.create()
                 .setEndpoint(endpoint)
@@ -80,27 +100,59 @@ public class ABSmartlyAndroid implements Closeable {
                 .setEnvironment(environment)
                 .setApplicationVersion(applicationVersion);
 
-        final HTTPClient transport = httpClient != null
-                ? httpClient
-                : DefaultHTTPClient.create(DefaultHTTPClientConfig.create());
-        final Client client = Client.create(clientConfig, new AgentHTTPClient(transport, AGENT));
+        // Everything acquired below is released if a later step throws, because no wrapper is
+        // returned for the caller to close.
+        HTTPClient transport = null;
+        ScheduledThreadPoolExecutor scheduler = null;
+        SqliteAndroidLocalCache cache = null;
+        try {
+            transport = transportFactory.create();
+            final Client client = Client.create(clientConfig, new AgentHTTPClient(transport, AGENT));
 
-        // core-api leaves a caller-supplied scheduler running on ABSmartly.close(), so the wrapper
-        // owns it and shuts it down in close() without blocking (which would risk an ANR on the UI
-        // thread). Delayed publish timers still queued at that point are dropped rather than run
-        // against the closed client: Context.close() publishes pending events itself.
-        final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
-        scheduler.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
-        scheduler.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
+            // core-api leaves a caller-supplied scheduler running on ABSmartly.close(), so the wrapper
+            // owns it and shuts it down in close() without blocking (which would risk an ANR on the UI
+            // thread). Delayed publish timers still queued at that point are dropped rather than run
+            // against the closed client: Context.close() publishes pending events itself.
+            scheduler = new ScheduledThreadPoolExecutor(1);
+            scheduler.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
+            scheduler.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
+
+            final ABSmartlyConfig sdkConfig = ABSmartlyConfig.create()
+                    .setClient(client)
+                    .setContextEventHandler(new AndroidContextEventHandler(
+                            new DefaultContextEventHandler(client), SDK_NAME, SDK_VERSION))
+                    .setScheduler(scheduler);
+
+            cache = new SqliteAndroidLocalCache(androidContext.getApplicationContext());
+            this.sdk = ABSmartly.create(sdkConfig);
+        } catch (RuntimeException | Error e) {
+            releaseAfterFailedConstruction(e, transport, scheduler, cache);
+            throw e;
+        }
         this.scheduler = scheduler;
+        this.cache = cache;
+    }
 
-        final ABSmartlyConfig sdkConfig = ABSmartlyConfig.create()
-                .setClient(client)
-                .setContextEventHandler(new AndroidContextEventHandler(
-                        new DefaultContextEventHandler(client), SDK_NAME, SDK_VERSION))
-                .setScheduler(scheduler);
-
-        this.sdk = ABSmartly.create(sdkConfig);
+    private static void releaseAfterFailedConstruction(@NonNull Throwable failure,
+            @Nullable HTTPClient transport, @Nullable ScheduledThreadPoolExecutor scheduler,
+            @Nullable SqliteAndroidLocalCache cache) {
+        if (scheduler != null) {
+            scheduler.shutdownNow();
+        }
+        if (cache != null) {
+            try {
+                cache.close();
+            } catch (RuntimeException e) {
+                failure.addSuppressed(e);
+            }
+        }
+        if (transport != null) {
+            try {
+                transport.close();
+            } catch (IOException | RuntimeException e) {
+                failure.addSuppressed(e);
+            }
+        }
     }
 
     private static void requireNonEmpty(@NonNull String value, @NonNull String message) {
@@ -214,11 +266,8 @@ public class ABSmartlyAndroid implements Closeable {
             if (application == null || application.isEmpty()) throw new IllegalStateException("application is required");
             if (environment == null || environment.isEmpty()) throw new IllegalStateException("environment is required");
             if (androidContext == null) throw new IllegalStateException("Android Context is required");
-            final HTTPClient httpClient = securityProvider != null
-                    ? DefaultHTTPClient.create(DefaultHTTPClientConfig.create().setSecurityProvider(securityProvider))
-                    : null;
             return new ABSmartlyAndroid(endpoint, apiKey, application, environment, applicationVersion,
-                    androidContext, httpClient);
+                    androidContext, defaultTransport(securityProvider));
         }
     }
 }

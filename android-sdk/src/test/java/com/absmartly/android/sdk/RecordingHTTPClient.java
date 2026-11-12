@@ -74,8 +74,16 @@ final class RecordingHTTPClient implements HTTPClient {
         return CompletableFuture.completedFuture(response(new byte[0]));
     }
 
+    private volatile boolean closed;
+
+    boolean isClosed() {
+        return closed;
+    }
+
     @Override
-    public void close() {}
+    public void close() {
+        closed = true;
+    }
 
     private static Response response(final byte[] content) {
         return new Response() {

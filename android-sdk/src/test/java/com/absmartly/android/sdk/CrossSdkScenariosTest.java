@@ -78,7 +78,7 @@ public class CrossSdkScenariosTest {
         http = new RecordingHTTPClient();
         // "development" matches none of the environments the scenarios scope rules to.
         sdk = new ABSmartlyAndroid("https://test.absmartly.io/v1", "key", "website", "development", null,
-                androidContext, http);
+                androidContext, () -> http);
     }
 
     @After
