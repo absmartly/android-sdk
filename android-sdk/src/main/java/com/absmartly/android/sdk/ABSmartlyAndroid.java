@@ -3,6 +3,7 @@ package com.absmartly.android.sdk;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.absmartly.android.sdk.cache.SqliteAndroidLocalCache;
 import com.absmartly.sdk.ABSmartly;
@@ -10,15 +11,27 @@ import com.absmartly.sdk.ABSmartlyConfig;
 import com.absmartly.sdk.Client;
 import com.absmartly.sdk.ClientConfig;
 import com.absmartly.sdk.ContextConfig;
+import com.absmartly.sdk.DefaultContextEventHandler;
+import com.absmartly.sdk.DefaultHTTPClient;
+import com.absmartly.sdk.DefaultHTTPClientConfig;
+import com.absmartly.sdk.HTTPClient;
 import com.absmartly.sdk.json.ContextData;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Objects;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class ABSmartlyAndroid implements Closeable {
+
+    /** The SDK name, sent as sdk_name and in the X-Agent header. */
+    public static final String SDK_NAME = "absmartly-android-sdk";
+
+    /** The SDK version, sent as sdk_version and in the X-Agent header. */
+    public static final String SDK_VERSION = BuildConfig.SDK_VERSION;
+
+    /** The X-Agent header value: "absmartly-android-sdk/&lt;version&gt;". */
+    public static final String AGENT = SDK_NAME + "/" + SDK_VERSION;
 
     public static ABSmartlyAndroid create(
             @NonNull String endpoint,
@@ -31,7 +44,7 @@ public class ABSmartlyAndroid implements Closeable {
         Objects.requireNonNull(application, "application is required");
         Objects.requireNonNull(environment, "environment is required");
         Objects.requireNonNull(androidContext, "Android Context is required");
-        return new ABSmartlyAndroid(endpoint, apiKey, application, environment, androidContext);
+        return new ABSmartlyAndroid(endpoint, apiKey, application, environment, null, androidContext);
     }
 
     public static Builder builder() {
@@ -40,14 +53,27 @@ public class ABSmartlyAndroid implements Closeable {
 
     private final ABSmartly sdk;
     private final SqliteAndroidLocalCache cache;
-    private final ScheduledExecutorService scheduler;
+    private final ScheduledThreadPoolExecutor scheduler;
 
     private ABSmartlyAndroid(
             @NonNull String endpoint,
             @NonNull String apiKey,
             @NonNull String application,
             @NonNull String environment,
+            @Nullable String applicationVersion,
             @NonNull Context androidContext) {
+        this(endpoint, apiKey, application, environment, applicationVersion, androidContext, null);
+    }
+
+    // Package-private so tests can supply the HTTP transport; null uses DefaultHTTPClient.
+    ABSmartlyAndroid(
+            @NonNull String endpoint,
+            @NonNull String apiKey,
+            @NonNull String application,
+            @NonNull String environment,
+            @Nullable String applicationVersion,
+            @NonNull Context androidContext,
+            @Nullable HTTPClient httpClient) {
         requireNonEmpty(endpoint, "endpoint is required");
         requireNonEmpty(apiKey, "apiKey is required");
         requireNonEmpty(application, "application is required");
@@ -60,17 +86,27 @@ public class ABSmartlyAndroid implements Closeable {
                 .setEndpoint(endpoint)
                 .setAPIKey(apiKey)
                 .setApplication(application)
-                .setEnvironment(environment);
+                .setEnvironment(environment)
+                .setApplicationVersion(applicationVersion);
 
-        final Client client = Client.create(clientConfig);
+        final HTTPClient transport = httpClient != null
+                ? httpClient
+                : DefaultHTTPClient.create(DefaultHTTPClientConfig.create());
+        final Client client = Client.create(clientConfig, new AgentHTTPClient(transport, AGENT));
 
-        // core-api 1.6.3's ABSmartly.close() awaits the scheduler for 5s but never shuts it
-        // down. Owning the scheduler here lets us shut it down on close() so normal closure
-        // does not block (and risk an ANR when called on the UI thread).
-        this.scheduler = new ScheduledThreadPoolExecutor(1);
+        // core-api leaves a caller-supplied scheduler running on ABSmartly.close(), so the wrapper
+        // owns it and shuts it down in close() without blocking (which would risk an ANR on the UI
+        // thread). Delayed publish timers still queued at that point are dropped rather than run
+        // against the closed client: Context.close() publishes pending events itself.
+        final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
+        scheduler.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
+        scheduler.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
+        this.scheduler = scheduler;
 
         final ABSmartlyConfig sdkConfig = ABSmartlyConfig.create()
                 .setClient(client)
+                .setContextEventHandler(new AndroidContextEventHandler(
+                        new DefaultContextEventHandler(client), SDK_NAME, SDK_VERSION))
                 .setScheduler(scheduler);
 
         this.sdk = ABSmartly.create(sdkConfig);
@@ -102,9 +138,7 @@ public class ABSmartlyAndroid implements Closeable {
     @Override
     public void close() throws IOException {
         IOException sdkException = null;
-        // Shut the scheduler down first so core-api's close() (which only awaits termination,
-        // never shuts the scheduler down itself) returns as soon as pending tasks drain,
-        // instead of blocking for the full 5s timeout.
+        // Stop the publish and refresh timers before the client closes.
         scheduler.shutdown();
         try {
             sdk.close();
@@ -133,6 +167,7 @@ public class ABSmartlyAndroid implements Closeable {
         private String apiKey;
         private String application;
         private String environment;
+        private String applicationVersion;
         private Context androidContext;
 
         private Builder() {}
@@ -157,6 +192,16 @@ public class ABSmartlyAndroid implements Closeable {
             return this;
         }
 
+        /**
+         * The application version, for example "2.4.1". It is the app_version system attribute that
+         * audience filters and assignment rules can compare with the semver_* operators, and is sent
+         * as the X-Application-Version header when it is a whole number.
+         */
+        public Builder applicationVersion(@Nullable String applicationVersion) {
+            this.applicationVersion = applicationVersion;
+            return this;
+        }
+
         public Builder context(@NonNull Context androidContext) {
             this.androidContext = androidContext;
             return this;
@@ -168,7 +213,8 @@ public class ABSmartlyAndroid implements Closeable {
             if (application == null || application.isEmpty()) throw new IllegalStateException("application is required");
             if (environment == null || environment.isEmpty()) throw new IllegalStateException("environment is required");
             if (androidContext == null) throw new IllegalStateException("Android Context is required");
-            return new ABSmartlyAndroid(endpoint, apiKey, application, environment, androidContext);
+            return new ABSmartlyAndroid(endpoint, apiKey, application, environment, applicationVersion,
+                    androidContext);
         }
     }
 }
