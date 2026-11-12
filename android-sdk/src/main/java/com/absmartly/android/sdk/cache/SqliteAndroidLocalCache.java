@@ -66,7 +66,10 @@ public class SqliteAndroidLocalCache extends SQLiteOpenHelper {
         try {
             return MAPPER.readValue(json, clazz);
         } catch (IOException e) {
-            Log.e(TAG, "Failed to deserialize " + clazz.getSimpleName() + " (length=" + json.length() + ")", e);
+            // Do not log the exception object: Jackson's message can embed the input payload
+            // (the cached JSON), so log only its type and the input length.
+            Log.e(TAG, "Failed to deserialize " + clazz.getSimpleName() + " (length=" + json.length()
+                    + "): " + e.getClass().getName());
             return null;
         }
     }
