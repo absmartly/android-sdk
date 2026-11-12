@@ -74,6 +74,38 @@ public class SqliteAndroidLocalCache extends SQLiteOpenHelper {
         }
     }
 
+    // Public serialization helpers kept from the original SqliteAndroidLocalCache API. Unlike the
+    // cache reads, which skip corrupted rows, these throw on invalid input.
+
+    @NonNull
+    public String serializeEvent(@NonNull PublishEvent event) {
+        return serialize(event);
+    }
+
+    @NonNull
+    public PublishEvent deserializeEvent(@NonNull String eventStr) {
+        return deserializeOrThrow(eventStr, PublishEvent.class);
+    }
+
+    @NonNull
+    public String serializeContext(@NonNull ContextData context) {
+        return serialize(context);
+    }
+
+    @NonNull
+    public ContextData deserializeContext(@NonNull String contextStr) {
+        return deserializeOrThrow(contextStr, ContextData.class);
+    }
+
+    @NonNull
+    private <T> T deserializeOrThrow(@NonNull String json, @NonNull Class<T> clazz) {
+        final T value = deserialize(json, clazz);
+        if (value == null) {
+            throw new CacheSerializationException("Failed to deserialize " + clazz.getSimpleName(), null);
+        }
+        return value;
+    }
+
     public void writePublishEvent(@NonNull PublishEvent publishEvent) {
         try {
             final SQLiteDatabase db = getWritableDatabase();
@@ -97,7 +129,7 @@ public class SqliteAndroidLocalCache extends SQLiteOpenHelper {
             final SQLiteDatabase db = getWritableDatabase();
             db.beginTransaction();
             try {
-                cursor = db.rawQuery("SELECT event FROM events", null);
+                cursor = db.rawQuery("SELECT event FROM events ORDER BY id ASC", null);
                 List<PublishEvent> events = new ArrayList<>();
                 while (cursor.moveToNext()) {
                     String eventStr = cursor.getString(0);
