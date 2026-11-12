@@ -12,6 +12,8 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
@@ -126,6 +128,41 @@ public class ABSmartlyAndroidTest {
                 .context(androidContext)
                 .build()) {
             assertNotNull(sdk.getSdk());
+        }
+    }
+
+    @Test
+    public void builder_withSecurityProvider_usesItForTls() {
+        final String marker = "test provider asked for an SSLContext";
+        // A provider whose TLS SSLContext fails with a marker: if build() reports the marker, the
+        // HTTP client asked this provider, not the platform default, for its SSL context.
+        final Provider provider = new Provider("ABSmartlyTestTLS", 1.0, "test TLS provider") {
+            {
+                putService(new Service(this, "SSLContext", "TLS", "unused", null, null) {
+                    @Override
+                    public Object newInstance(Object constructorParameter) throws NoSuchAlgorithmException {
+                        throw new NoSuchAlgorithmException(marker);
+                    }
+                });
+            }
+        };
+
+        try {
+            ABSmartlyAndroid.builder()
+                    .endpoint("https://test.absmartly.io/v1")
+                    .apiKey("test-api-key")
+                    .application("test-app")
+                    .environment("test-env")
+                    .securityProvider(provider)
+                    .context(androidContext)
+                    .build();
+            fail("expected the test provider to be used");
+        } catch (SecurityException e) {
+            boolean found = false;
+            for (Throwable t = e; t != null; t = t.getCause()) {
+                found |= t.getMessage() != null && t.getMessage().contains(marker);
+            }
+            assertTrue("the configured provider was not used: " + e, found);
         }
     }
 

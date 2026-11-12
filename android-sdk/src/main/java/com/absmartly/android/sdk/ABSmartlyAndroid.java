@@ -19,6 +19,7 @@ import com.absmartly.sdk.json.ContextData;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.security.Provider;
 import java.util.Objects;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
@@ -44,7 +45,7 @@ public class ABSmartlyAndroid implements Closeable {
         Objects.requireNonNull(application, "application is required");
         Objects.requireNonNull(environment, "environment is required");
         Objects.requireNonNull(androidContext, "Android Context is required");
-        return new ABSmartlyAndroid(endpoint, apiKey, application, environment, null, androidContext);
+        return new ABSmartlyAndroid(endpoint, apiKey, application, environment, null, androidContext, null);
     }
 
     public static Builder builder() {
@@ -54,16 +55,6 @@ public class ABSmartlyAndroid implements Closeable {
     private final ABSmartly sdk;
     private final SqliteAndroidLocalCache cache;
     private final ScheduledThreadPoolExecutor scheduler;
-
-    private ABSmartlyAndroid(
-            @NonNull String endpoint,
-            @NonNull String apiKey,
-            @NonNull String application,
-            @NonNull String environment,
-            @Nullable String applicationVersion,
-            @NonNull Context androidContext) {
-        this(endpoint, apiKey, application, environment, applicationVersion, androidContext, null);
-    }
 
     // Package-private so tests can supply the HTTP transport; null uses DefaultHTTPClient.
     ABSmartlyAndroid(
@@ -168,6 +159,7 @@ public class ABSmartlyAndroid implements Closeable {
         private String application;
         private String environment;
         private String applicationVersion;
+        private Provider securityProvider;
         private Context androidContext;
 
         private Builder() {}
@@ -202,6 +194,15 @@ public class ABSmartlyAndroid implements Closeable {
             return this;
         }
 
+        /**
+         * The security provider for HTTPS connections. On Android 6.0 (API 23) and earlier the
+         * default provider does not work; pass {@code Conscrypt.newProvider()} there.
+         */
+        public Builder securityProvider(@Nullable Provider securityProvider) {
+            this.securityProvider = securityProvider;
+            return this;
+        }
+
         public Builder context(@NonNull Context androidContext) {
             this.androidContext = androidContext;
             return this;
@@ -213,8 +214,11 @@ public class ABSmartlyAndroid implements Closeable {
             if (application == null || application.isEmpty()) throw new IllegalStateException("application is required");
             if (environment == null || environment.isEmpty()) throw new IllegalStateException("environment is required");
             if (androidContext == null) throw new IllegalStateException("Android Context is required");
+            final HTTPClient httpClient = securityProvider != null
+                    ? DefaultHTTPClient.create(DefaultHTTPClientConfig.create().setSecurityProvider(securityProvider))
+                    : null;
             return new ABSmartlyAndroid(endpoint, apiKey, application, environment, applicationVersion,
-                    androidContext);
+                    androidContext, httpClient);
         }
     }
 }
