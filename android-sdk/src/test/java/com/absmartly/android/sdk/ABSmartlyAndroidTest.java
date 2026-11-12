@@ -131,4 +131,56 @@ public class ABSmartlyAndroidTest {
     public void create_nullContext_throwsNullPointerException() {
         ABSmartlyAndroid.create("https://test.absmartly.io/v1", "key", "app", "env", null);
     }
+
+    @Test
+    public void builder_emptyEndpoint_throwsIllegalStateException() {
+        try {
+            ABSmartlyAndroid.builder()
+                    .endpoint("")
+                    .apiKey("key")
+                    .application("app")
+                    .environment("env")
+                    .context(androidContext)
+                    .build();
+            fail("expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("endpoint"));
+        }
+    }
+
+    @Test
+    public void builder_emptyApiKey_throwsIllegalStateException() {
+        try {
+            ABSmartlyAndroid.builder()
+                    .endpoint("https://test.absmartly.io/v1")
+                    .apiKey("")
+                    .application("app")
+                    .environment("env")
+                    .context(androidContext)
+                    .build();
+            fail("expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("apiKey"));
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void create_emptyEndpoint_throwsIllegalArgumentException() {
+        ABSmartlyAndroid.create("", "key", "app", "env", androidContext);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void create_emptyApiKey_throwsIllegalArgumentException() {
+        ABSmartlyAndroid.create("https://test.absmartly.io/v1", "", "app", "env", androidContext);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void create_emptyApplication_throwsIllegalArgumentException() {
+        ABSmartlyAndroid.create("https://test.absmartly.io/v1", "key", "", "env", androidContext);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void create_emptyEnvironment_throwsIllegalArgumentException() {
+        ABSmartlyAndroid.create("https://test.absmartly.io/v1", "key", "app", "", androidContext);
+    }
 }

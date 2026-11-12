@@ -613,9 +613,11 @@ public class ProductFragment extends Fragment {
 }
 ```
 
-### Lifecycle-Aware Context Cancellation
+### Lifecycle-Aware Readiness Cancellation
 
-Cancel in-flight context creation when the Activity or Fragment is destroyed:
+Cancel the readiness continuation when the Activity or Fragment is destroyed. This cancels the
+`waitUntilReadyAsync()` future so its callback no longer runs after teardown; it does not abort
+the underlying context-data request already in flight:
 
 ```java
 import android.os.Bundle;
@@ -681,7 +683,7 @@ public class MainActivity extends AppCompatActivity {
 
 ### SqliteAndroidLocalCache
 
-The Android SDK provides an Android-optimized implementation using SQLite for persisting context data and pending publish events. This ensures events are not lost if the app is terminated before they can be sent to the collector.
+The Android SDK provides an Android-optimized local cache backed by SQLite for storing context data and pending publish events. Persistence is not automatic: you must integrate the cache into your own read/write and retry flow. Retrieval is destructive — `retrievePublishEvents()` deletes the stored events as it returns them, so if the process terminates after retrieval but before the events are published they are lost. Do not rely on this cache as a crash-safe delivery mechanism.
 
 ```java
 import com.absmartly.android.sdk.cache.SqliteAndroidLocalCache;
