@@ -10,11 +10,11 @@ ext {
 
 android {
     namespace 'com.absmartly.android.sdk'
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         minSdk 21
-        targetSdk 33
+        targetSdk 34
         versionCode 1
         versionName "1.0"
 
@@ -25,11 +25,17 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            consumerProguardFiles 'consumer-proguard-rules.pro'
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_6
-        targetCompatibility JavaVersion.VERSION_1_6
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+        }
     }
     publishing {
         singleVariant("release") {
@@ -40,16 +46,21 @@ android {
 }
 
 dependencies {
+    implementation 'androidx.annotation:annotation:1.7.1'
 
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.8.0'
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.10.3'
+
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
-    implementation 'com.absmartly.sdk:core-api:1.6.0'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.4.2'
-    implementation 'org.conscrypt:conscrypt-android:2.5.2'
+    api 'com.absmartly.sdk:core-api:1.6.3'
+    api 'net.sourceforge.streamsupport:streamsupport-minifuture:1.7.4'
+    // Jackson 2.14+ introspection calls Constructor/Method.getParameterCount(), which is
+    // unavailable before Android API 26. The SDK declares minSdk 21, so the dependency is
+    // pinned to the latest 2.13.x line (last release compatible with API 21-25). This also
+    // matches the version core-api 1.6.3 brings in transitively (2.13.4.2).
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.5'
 }
 
 task ship() {
