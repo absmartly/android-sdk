@@ -12,6 +12,7 @@ jobs:
   publish:
     name: Publish Android SDK to Maven Central
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,7 +24,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -34,18 +34,48 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             "platforms;android-34" "build-tools;34.0.0"
 
+      - name: Run unit tests
+        run: ./gradlew :android-sdk:test --no-daemon --stacktrace
+
+      # Same secrets as the Java SDK release: SECRET_FILE_DATA is the base64-encoded private key
+      # and GPG_PASSWORD its passphrase.
+      - name: Import signing key
+        id: gpg
+        env:
+          SECRET_FILE_DATA: ${{ secrets.SECRET_FILE_DATA }}
+          GPG_PASSWORD: ${{ secrets.GPG_PASSWORD }}
+        run: |
+          echo -n "$SECRET_FILE_DATA" | base64 --decode \
+            | gpg --batch --pinentry-mode loopback --passphrase "$GPG_PASSWORD" --import
+          fingerprint=$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/ { print $10; exit }')
+          if [ -z "$fingerprint" ]; then
+            echo "::error::No secret key was imported from SECRET_FILE_DATA"
+            exit 1
+          fi
+          echo "fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
+
       - name: Publish release
         env:
-          VERSION_NAME: "${GITHUB_REF_NAME#v}"
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-          SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}
-          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          GPG_KEY: ${{ steps.gpg.outputs.fingerprint }}
+          GPG_PASSWORD: ${{ secrets.GPG_PASSWORD }}
         run: |
-          ./gradlew :android-sdk:publishAndroidSdkPublicationToAndroidSonatypeRepository \
-            -PVERSION_NAME="$VERSION_NAME" \
-            -PossrhUsername="$OSSRH_USERNAME" \
-            -PossrhPassword="$OSSRH_PASSWORD" \
-            -Psigning.keyId="$SIGNING_KEY_ID" \
-            -Psigning.password="$SIGNING_KEY_PASSWORD" \
+          # Properties read by useGpgCmd() in android-sdk/build.gradle. Written to the Gradle user
+          # home rather than passed with -P so the passphrase is not on the command line.
+          gradle_home="${GRADLE_USER_HOME:-$HOME/.gradle}"
+          mkdir -p "$gradle_home"
+          (
+            umask 077
+            {
+              echo "signing.gnupg.executable=gpg"
+              echo "signing.gnupg.keyName=$GPG_KEY"
+              echo "signing.gnupg.passphrase=$GPG_PASSWORD"
+            } >> "$gradle_home/gradle.properties"
+          )
+
+          VERSION_NAME="${GITHUB_REF_NAME#v}"
+          ./gradlew -PVERSION_NAME="$VERSION_NAME" \
+            :android-sdk:publishReleasePublicationToSonatypeRepository \
+            closeAndReleaseSonatypeStagingRepository \
             --no-daemon --stacktrace

@@ -3,10 +3,14 @@ apply plugin: "signing"
 apply plugin: "maven-publish"
 
 ext {
-    VERSION = rootProject.findProperty("VERSION_NAME") ?: System.getenv("VERSION_NAME") ?: "1.0.0-SNAPSHOT"
-    GROUP_ID = "com.absmartly.sdk"
-    is_release_version = !VERSION.endsWith("SNAPSHOT")
+    VERSION = rootProject.ext.VERSION
+    GROUP_ID = rootProject.ext.GROUP_ID
+    is_release_version = rootProject.ext.is_release_version
 }
+
+// The nexus publish plugin picks the release or snapshot repository from the project version.
+group = GROUP_ID
+version = VERSION
 
 android {
     namespace 'com.absmartly.android.sdk'
@@ -17,7 +21,15 @@ android {
         targetSdk 34
         versionCode 1
         versionName VERSION
+
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // Sent in the X-Agent header and the sdk_version system attribute.
+        buildConfigField "String", "SDK_VERSION", "\"${VERSION}\""
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     buildTypes {
@@ -32,7 +44,9 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
     testOptions {
-        unitTests { includeAndroidResources = true }
+        unitTests {
+            includeAndroidResources = true
+        }
     }
     publishing {
         singleVariant("release") {
@@ -44,19 +58,28 @@ android {
 
 dependencies {
     implementation 'androidx.annotation:annotation:1.7.1'
+
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.robolectric:robolectric:4.10.3'
+
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
-    // 1.7.0 contains system attributes, assignment rules and semver expression operators.
+    // core-api 1.7.0 adds assignment rules, the semver_* operators, system attributes and the
+    // versioned X-Agent header. 1.8.0 moved to java.util.concurrent (API 24+), so stay on 1.7.x
+    // while minSdk is 21.
     api 'com.absmartly.sdk:core-api:1.7.0'
     api 'net.sourceforge.streamsupport:streamsupport-minifuture:1.7.4'
-    // Keep Jackson 2.13.x for Android API 21-25 compatibility.
+    // Jackson 2.14+ introspection calls Constructor/Method.getParameterCount(), which is
+    // unavailable before Android API 26. The SDK declares minSdk 21, so the dependency is
+    // pinned to the latest 2.13.x line (last release compatible with API 21-25). This also
+    // matches the version core-api 1.7.0 brings in transitively (2.13.4.2).
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.5'
 }
 
-task ship() { dependsOn('publish') }
+task ship() {
+    dependsOn('publish')
+}
 
 afterEvaluate {
     publishing {
@@ -65,26 +88,20 @@ afterEvaluate {
                 artifactId = 'android-sdk'
                 version = VERSION
                 group = GROUP_ID
+
                 customizePom(pom, 'A/B Smartly Android SDK')
                 pom.description = 'A/B Smartly Android SDK'
                 from components.release
             }
         }
-        repositories {
-            maven {
-                name = "androidSonatype"
-                url = uri(is_release_version
-                        ? "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-                        : "https://s01.oss.sonatype.org/content/repositories/snapshots/")
-                credentials {
-                    username = findProperty("ossrhUsername") ?: System.getenv("OSSRH_USERNAME")
-                    password = findProperty("ossrhPassword") ?: System.getenv("OSSRH_PASSWORD")
-                }
-            }
-        }
+        // The Sonatype repository is added by the nexus publish plugin in the root build.gradle.
     }
+
     signing {
+        // Uses the signing.gnupg.* properties; the publish workflow imports the key into gpg.
         useGpgCmd()
+        required { is_release_version }
+
         sign publishing.publications.release
     }
 }
