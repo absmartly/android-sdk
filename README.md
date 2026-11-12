@@ -149,7 +149,22 @@ try {
 
 #### Android 6.0 or earlier
 
-When targeting Android 6.0 or earlier, set the default Java Security Provider for SSL to *Conscrypt* by creating the *Client* instance as follows:
+When targeting Android 6.0 or earlier, set the Java Security Provider for SSL to *Conscrypt*. With `ABSmartlyAndroid`, pass it to the builder:
+
+```java
+import org.conscrypt.Conscrypt;
+
+final ABSmartlyAndroid sdk = ABSmartlyAndroid.builder()
+    .endpoint("https://your-company.absmartly.io/v1")
+    .apiKey("YOUR-API-KEY")
+    .application("android-app")
+    .environment("production")
+    .securityProvider(Conscrypt.newProvider())
+    .context(getApplicationContext())
+    .build();
+```
+
+With the Java SDK directly, create the *Client* instance as follows:
 
 ```java
 import com.absmartly.sdk.*;
@@ -360,7 +375,9 @@ final int treatment = context.getTreatment("exp_test_experiment"); // the matchi
 
 ### Semver Operators
 
-Audience filters and rule conditions can compare versions with `semver_eq`, `semver_gt`, `semver_gte`, `semver_lt` and `semver_lte`, for example `app_version >= 2.4.0`. A leading `v` and build metadata are ignored, missing parts count as `0` (`1.2` equals `1.2.0`), and a pre-release ranks below its release (`2.4.0-beta.1 < 2.4.0`). A value that is not a version never matches.
+Audience filters and rule conditions can compare versions with `semver_eq`, `semver_gt`, `semver_gte`, `semver_lt` and `semver_lte`, for example `app_version >= 2.4.0`. A leading `v` and build metadata are ignored, missing parts count as `0` (`1.2` equals `1.2.0`), and a pre-release ranks below its release (`2.4.0-beta.1 < 2.4.0`).
+
+Comparison is permissive, matching the JavaScript and Java SDKs: a non-numeric part is compared as text and ranks above any number, so an `app_version` of `"unknown"` or `"1.x"` satisfies `semver_gte` against `"2.4.0"`. Only a missing value, a value that is not a string, number or boolean, or one with an empty version core (`""`, `"v"`, `"+build"`) never matches. Make sure `app_version` holds a real version when targeting on it.
 
 ### Tracking Goals
 

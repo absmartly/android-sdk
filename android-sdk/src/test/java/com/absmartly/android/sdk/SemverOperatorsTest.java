@@ -97,6 +97,14 @@ public class SemverOperatorsTest {
     }
 
     @Test
+    public void nonNumericPartsAreComparedAsTextAboveNumbers() {
+        // Documented in the README: permissive like the JavaScript and Java SDKs, not rejected.
+        assertEquals(true, eval("semver_gte", "unknown", "2.4.0"));
+        assertEquals(true, eval("semver_gte", "1.x", "1.2.0"));
+        assertOrder("1.9.0", "1.x");
+    }
+
+    @Test
     public void invalidOperandsAreNull() {
         assertEquals(null, eval("semver_eq", null, "1.0.0"));
         assertEquals(null, eval("semver_gt", "1.0.0", null));
