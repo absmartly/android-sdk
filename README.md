@@ -68,6 +68,7 @@ final ABSmartlyAndroid sdk = ABSmartlyAndroid.builder()
     .apiKey("YOUR-API-KEY")
     .application("android-app")
     .environment("production")
+    .applicationVersion(BuildConfig.VERSION_NAME) // optional, e.g. "2.4.1"
     .context(getApplicationContext())
     .build();
 ```
@@ -85,6 +86,10 @@ final ABSmartlyAndroid sdk = ABSmartlyAndroid.create(
 ```
 
 `ABSmartlyAndroid` delegates `createContext` and `createContextWith` to the underlying Java SDK, closes both the Java SDK and the cache in `close()`, and exposes `getCache()` to access the `SqliteAndroidLocalCache` directly. Call `getSdk()` to access the underlying `ABSmartly` Java SDK instance for advanced use cases.
+
+`applicationVersion` is optional. It becomes the `app_version` [system attribute](#system-attributes), which audience filters and assignment rules can compare with the [semver operators](#semver-operators). It is also sent as the `X-Application-Version` header when it is a whole number such as `42`; any other version, such as `2.4.1`, is sent as `0` there because the collector only accepts whole numbers.
+
+`ABSmartlyAndroid` identifies itself to the collector with `X-Agent: absmartly-android-sdk/<version>` (`ABSmartlyAndroid.AGENT`), so the backend can tell which SDK and version sent events. Contexts created with the Java SDK directly send the Java SDK's agent, `absmartly-java-sdk/<version>`, instead.
 
 #### Advanced Configuration (Java SDK directly)
 
@@ -318,6 +323,44 @@ final Map<String, Object> attributes = new HashMap<>();
 attributes.put("customer_age", "new_customer");
 context.setAttributes(attributes);
 ```
+
+### System Attributes
+
+With `setIncludeSystemAttributes(true)`, the context makes `application`, `environment` and `app_version` available to audience filters and assignment-rule conditions (an attribute you set yourself with the same name takes precedence), and prepends these attributes to every publish:
+
+| Attribute     | Value                                                              |
+|:--------------|:-------------------------------------------------------------------|
+| `sdk_name`    | `absmartly-android-sdk`                                            |
+| `sdk_version` | The Android SDK version (`ABSmartlyAndroid.SDK_VERSION`)           |
+| `application` | The configured application                                         |
+| `environment` | The configured environment                                         |
+| `app_version` | The configured application version; left out when it is not set or `0` |
+
+Their `setAt` is the time of the earliest exposure or goal in the publish. A system attribute is not sent when you set an attribute with the same name yourself. System attributes are disabled by default.
+
+```java
+final ContextConfig contextConfig = ContextConfig.create()
+    .setUnit("session_id", "5ebf06d8cb5d8137290c4abb64155584fbdb64d8")
+    .setIncludeSystemAttributes(true);
+```
+
+### Assignment Rules
+
+Experiments can carry ordered assignment rules, configured in the Web Console. The first rule whose conditions match the context's attributes (and whose environments, if any, include the configured environment) decides the variant, ahead of audience targeting, traffic allocation and custom assignments:
+
+- an `assign` rule gives a fixed variant;
+- a `split` rule randomizes the unit over the rule's own percentages.
+
+Rule-assigned exposures are flagged `ruleOverride` so they can be excluded from analysis. `setOverride()` still wins over every rule. If the first matching rule's variant is out of range, or its split does not have one percentage per variant, normal assignment applies. Rule evaluation needs no SDK configuration; set the attributes the conditions refer to.
+
+```java
+context.setAttribute("country", "US");
+final int treatment = context.getTreatment("exp_test_experiment"); // the matching rule's variant
+```
+
+### Semver Operators
+
+Audience filters and rule conditions can compare versions with `semver_eq`, `semver_gt`, `semver_gte`, `semver_lt` and `semver_lte`, for example `app_version >= 2.4.0`. A leading `v` and build metadata are ignored, missing parts count as `0` (`1.2` equals `1.2.0`), and a pre-release ranks below its release (`2.4.0-beta.1 < 2.4.0`). A value that is not a version never matches.
 
 ### Tracking Goals
 
@@ -679,6 +722,10 @@ public class MainActivity extends AppCompatActivity {
 }
 ```
 
+## Cross-SDK Scenarios
+
+`CrossSdkScenariosTest` replays the assignment-rule, semver and audience re-evaluation scenarios (230-247) from [cross-sdk-tests](https://github.com/absmartly/cross-sdk-tests), recorded from the JavaScript SDK, against `ABSmartlyAndroid`. The scenario file is vendored in `android-sdk/src/test/resources/cross-sdk/` together with the cross-sdk-tests commit it was copied from.
+
 ## Android-Specific Components
 
 ### SqliteAndroidLocalCache
@@ -702,6 +749,8 @@ cache.writePublishEvent(publishEvent);
 // Retrieve and clear all pending publish events
 List<PublishEvent> pendingEvents = cache.retrievePublishEvents();
 ```
+
+`serializeEvent`, `deserializeEvent`, `serializeContext` and `deserializeContext` convert events and context data to and from the JSON stored in the database; the two `deserialize` methods throw `CacheSerializationException` on invalid JSON.
 
 The SQLite database is named `absmartly.db` and is automatically created in the application's default database directory.
 
