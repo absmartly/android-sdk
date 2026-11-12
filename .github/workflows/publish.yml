@@ -58,24 +58,12 @@ jobs:
         env:
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-          GPG_KEY: ${{ steps.gpg.outputs.fingerprint }}
-          GPG_PASSWORD: ${{ secrets.GPG_PASSWORD }}
+          # Read by the signing block in android-sdk/build.gradle.
+          SIGNING_GNUPG_KEY_NAME: ${{ steps.gpg.outputs.fingerprint }}
+          SIGNING_GNUPG_PASSPHRASE: ${{ secrets.GPG_PASSWORD }}
         run: |
-          # Properties read by useGpgCmd() in android-sdk/build.gradle. Written to the Gradle user
-          # home rather than passed with -P so the passphrase is not on the command line.
-          gradle_home="${GRADLE_USER_HOME:-$HOME/.gradle}"
-          mkdir -p "$gradle_home"
-          (
-            umask 077
-            {
-              echo "signing.gnupg.executable=gpg"
-              echo "signing.gnupg.keyName=$GPG_KEY"
-              echo "signing.gnupg.passphrase=$GPG_PASSWORD"
-            } >> "$gradle_home/gradle.properties"
-          )
-
           VERSION_NAME="${GITHUB_REF_NAME#v}"
-          ./gradlew -PVERSION_NAME="$VERSION_NAME" \
+          ./gradlew -PVERSION_NAME="$VERSION_NAME" -Psigning.gnupg.executable=gpg \
             :android-sdk:publishReleasePublicationToSonatypeRepository \
             closeAndReleaseSonatypeStagingRepository \
             --no-daemon --stacktrace

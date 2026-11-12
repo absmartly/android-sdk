@@ -98,7 +98,16 @@ afterEvaluate {
     }
 
     signing {
-        // Uses the signing.gnupg.* properties; the publish workflow imports the key into gpg.
+        // The publish workflow imports the key into gpg and passes its fingerprint and passphrase
+        // as environment variables. Reading them here, rather than from a properties file, keeps
+        // the passphrase byte-for-byte (Java properties parsing drops backslashes and leading
+        // spaces). Local builds use the signing.gnupg.* properties as usual.
+        ["keyName": "SIGNING_GNUPG_KEY_NAME", "passphrase": "SIGNING_GNUPG_PASSPHRASE"].each { key, env ->
+            def value = System.getenv(env)
+            if (value) {
+                project.ext.set("signing.gnupg.${key}", value)
+            }
+        }
         useGpgCmd()
         required { is_release_version }
 
