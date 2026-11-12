@@ -1,6 +1,7 @@
 package com.absmartly.android.sdk;
 
 import android.content.Context;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 
 import com.absmartly.android.sdk.cache.SqliteAndroidLocalCache;
@@ -149,6 +150,11 @@ public class SqliteAndroidLocalCacheTest {
         assertEquals(1, retrieved.experiments.length);
         assertEquals(2, retrieved.experiments[0].id);
         assertEquals("experiment2", retrieved.experiments[0].name);
+        assertEquals(1, contextRowCount());
+    }
+
+    private long contextRowCount() {
+        return DatabaseUtils.queryNumEntries(cache.getReadableDatabase(), "context");
     }
 
     @Test
@@ -259,15 +265,80 @@ public class SqliteAndroidLocalCacheTest {
     }
 
     @Test
-    public void testWritePublishEventIsTransactional() {
-        PublishEvent event = new PublishEvent();
-        event.hashed = true;
-        event.publishedAt = 100L;
-        event.units = new Unit[0];
+    public void testWriteContextDataRollsBackOnFailedInsert() {
+        ContextData original = new ContextData();
+        Experiment exp = new Experiment();
+        exp.id = 7;
+        exp.name = "original";
+        original.experiments = new Experiment[]{exp};
+        cache.writeContextData(original);
 
-        cache.writePublishEvent(event);
+        // Make the replacement INSERT fail after the DELETE in the same transaction has run.
+        SQLiteDatabase db = cache.getWritableDatabase();
+        db.execSQL("CREATE TRIGGER fail_context_insert BEFORE INSERT ON context "
+                + "BEGIN SELECT RAISE(ABORT, 'forced failure'); END");
+
+        ContextData replacement = new ContextData();
+        replacement.experiments = new Experiment[0];
+        try {
+            cache.writeContextData(replacement);
+            fail("expected CacheOperationException");
+        } catch (SqliteAndroidLocalCache.CacheOperationException expected) {
+            // the transaction is rolled back
+        } finally {
+            db.execSQL("DROP TRIGGER fail_context_insert");
+        }
+
+        ContextData retrieved = cache.getContextData();
+        assertNotNull(retrieved);
+        assertEquals(1, retrieved.experiments.length);
+        assertEquals(7, retrieved.experiments[0].id);
+        assertEquals(1, contextRowCount());
+    }
+
+    @Test
+    public void testRetrievePublishEventsReturnsInsertionOrder() {
+        for (long publishedAt = 1; publishedAt <= 5; ++publishedAt) {
+            PublishEvent event = new PublishEvent();
+            event.publishedAt = publishedAt;
+            event.units = new Unit[0];
+            cache.writePublishEvent(event);
+        }
 
         List<PublishEvent> events = cache.retrievePublishEvents();
-        assertEquals(1, events.size());
+
+        assertEquals(5, events.size());
+        for (int i = 0; i < 5; ++i) {
+            assertEquals(i + 1, events.get(i).publishedAt);
+        }
+    }
+
+    @Test
+    public void testSerializationHelpersRoundTrip() {
+        PublishEvent event = new PublishEvent();
+        event.hashed = true;
+        event.publishedAt = 77L;
+        event.units = new Unit[]{new Unit("session_id", "abc")};
+        PublishEvent decodedEvent = cache.deserializeEvent(cache.serializeEvent(event));
+        assertEquals(77L, decodedEvent.publishedAt);
+        assertEquals("abc", decodedEvent.units[0].uid);
+
+        ContextData contextData = new ContextData();
+        Experiment exp = new Experiment();
+        exp.id = 3;
+        exp.name = "exp";
+        contextData.experiments = new Experiment[]{exp};
+        ContextData decodedContext = cache.deserializeContext(cache.serializeContext(contextData));
+        assertEquals("exp", decodedContext.experiments[0].name);
+    }
+
+    @Test(expected = SqliteAndroidLocalCache.CacheSerializationException.class)
+    public void testDeserializeEventThrowsOnInvalidJson() {
+        cache.deserializeEvent("not json");
+    }
+
+    @Test(expected = SqliteAndroidLocalCache.CacheSerializationException.class)
+    public void testDeserializeContextThrowsOnInvalidJson() {
+        cache.deserializeContext("not json");
     }
 }

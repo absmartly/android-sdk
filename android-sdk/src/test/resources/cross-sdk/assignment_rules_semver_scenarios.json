@@ -1,0 +1,2413 @@
+{
+ "source": "absmartly/cross-sdk-tests test_scenarios_complete.json, scenarios 230-247",
+ "commit": "53bc49c97bb66b35f22b23e5710d2c9985cd1e4a",
+ "scenarios": [
+  {
+   "name": "230 - Custom Assignment Rules - Matching Assign Rule Wins And Flags ruleOverride",
+   "description": "An assign rule whose condition matches sets the variant; the exposure is flagged ruleOverride:true with assigned:false (the backend excludes it from analysis), not custom. Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_rule_assign",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "assignmentRules": "{\"rules\":[{\"name\":\"us\",\"type\":\"assign\",\"variant\":1,\"conditions\":{\"eq\":[{\"var\":\"country\"},{\"value\":\"US\"}]}}]}"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_rule_assign"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "attribute",
+     "params": {
+      "name": "country",
+      "value": "US"
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_rule_assign"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "exp_rule_assign",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": false,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false,
+         "ruleOverride": true
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    }
+   ],
+   "requires": [
+    "assignmentRules"
+   ]
+  },
+  {
+   "name": "231 - Custom Assignment Rules - Non-Matching Assign Rule Falls Through To Normal Assignment",
+   "description": "An assign rule whose condition does not match is skipped and the unit takes its ordinary assignment (variant 1 here, assigned:true, ruleOverride:false). Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 2,
+      "name": "exp_rule_nomatch",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "assignmentRules": "{\"rules\":[{\"name\":\"us\",\"type\":\"assign\",\"variant\":1,\"conditions\":{\"eq\":[{\"var\":\"country\"},{\"value\":\"US\"}]}}]}"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 2,
+           "name": "exp_rule_nomatch"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "attribute",
+     "params": {
+      "name": "country",
+      "value": "CA"
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_rule_nomatch"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 2,
+         "name": "exp_rule_nomatch",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false,
+         "ruleOverride": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    }
+   ],
+   "requires": [
+    "assignmentRules"
+   ]
+  },
+  {
+   "name": "232 - Custom Assignment Rules - Out-Of-Range Rule Variant Is Ignored And Later Rules Are Not Tried",
+   "description": "The first matching rule's variant (5) is out of range for a two-variant experiment, so normal assignment applies and the second rule (variant 0) is NOT tried: the unit gets its ordinary assignment (variant 1), not variant 0. Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 3,
+      "name": "exp_rule_oor",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "assignmentRules": "{\"rules\":[{\"name\":\"oor\",\"type\":\"assign\",\"variant\":5},{\"name\":\"fallback\",\"type\":\"assign\",\"variant\":0}]}"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 3,
+           "name": "exp_rule_oor"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_rule_oor"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 3,
+         "name": "exp_rule_oor",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false,
+         "ruleOverride": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    }
+   ],
+   "requires": [
+    "assignmentRules"
+   ]
+  },
+  {
+   "name": "233 - Custom Assignment Rules - Split Rule Randomizes Over Its Own Percentages And Flags ruleOverride",
+   "description": "A split rule with percentages 0/100 sends every unit to variant 1 over the rule's own percentages; the exposure is flagged ruleOverride:true, assigned:false. Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 4,
+      "name": "exp_rule_split",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "assignmentRules": "{\"rules\":[{\"name\":\"split\",\"type\":\"split\",\"percentages\":\"0/100\"}]}"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 4,
+           "name": "exp_rule_split"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_rule_split"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 4,
+         "name": "exp_rule_split",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": false,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false,
+         "ruleOverride": true
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    }
+   ],
+   "requires": [
+    "assignmentRules"
+   ]
+  },
+  {
+   "name": "234 - Custom Assignment Rules - Environment-Scoped Rule Does Not Match A Different Environment",
+   "description": "A rule scoped to environment 'production' does not match the reference context's environment, so it is skipped and the unit takes its ordinary assignment (variant 1). 'production' is used because it matches no SDK wrapper's environment name. Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 5,
+      "name": "exp_rule_env",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "assignmentRules": "{\"rules\":[{\"name\":\"prod-only\",\"type\":\"assign\",\"variant\":0,\"environments\":[\"production\"]}]}"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 5,
+           "name": "exp_rule_env"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_rule_env"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 5,
+         "name": "exp_rule_env",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false,
+         "ruleOverride": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    }
+   ],
+   "requires": [
+    "assignmentRules"
+   ]
+  },
+  {
+   "name": "235 - Custom Assignment Rules - Override Beats A Matching Rule",
+   "description": "setOverride wins over every rule: with a rule that would assign variant 1, an override to variant 2 gives variant 2 with overridden:true (ruleOverride:false, assigned:false). Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 6,
+      "name": "exp_rule_override",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       },
+       {
+        "name": "C",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "assignmentRules": "{\"rules\":[{\"name\":\"a\",\"type\":\"assign\",\"variant\":1}]}"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 6,
+           "name": "exp_rule_override"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "override",
+     "params": {
+      "experimentName": "exp_rule_override",
+      "variant": 2
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_rule_override"
+     },
+     "expect": {
+      "result": 2,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 6,
+         "name": "exp_rule_override",
+         "unit": "session_id",
+         "variant": 2,
+         "assigned": false,
+         "eligible": true,
+         "overridden": true,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false,
+         "ruleOverride": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    }
+   ],
+   "requires": [
+    "assignmentRules"
+   ]
+  },
+  {
+   "name": "236 - Custom Assignment Rules - Rule Takes Precedence Over A Strict Audience Mismatch",
+   "description": "A matching rule is evaluated before audience targeting: even though the strict audience (tier == gold) does not match, the rule assigns variant 1 with ruleOverride:true and audienceMismatch:false (audience is not evaluated for a rule win). Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 7,
+      "name": "exp_rule_audience",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": "{\"filter\":[{\"eq\":[{\"var\":\"tier\"},{\"value\":\"gold\"}]}]}",
+      "audienceStrict": true,
+      "customFieldValues": null,
+      "assignmentRules": "{\"rules\":[{\"name\":\"a\",\"type\":\"assign\",\"variant\":1}]}"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 7,
+           "name": "exp_rule_audience"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_rule_audience"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 7,
+         "name": "exp_rule_audience",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": false,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false,
+         "ruleOverride": true
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    }
+   ],
+   "requires": [
+    "assignmentRules"
+   ]
+  },
+  {
+   "name": "237 - Custom Assignment Rules - Rule Takes Precedence Over A Custom Assignment",
+   "description": "A matching rule wins over a custom assignment: customAssignment(2) is set, but the rule assigns variant 1 with ruleOverride:true (custom:false). The custom assignment only shows when no rule matches. Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 8,
+      "name": "exp_rule_custom",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       },
+       {
+        "name": "C",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "assignmentRules": "{\"rules\":[{\"name\":\"a\",\"type\":\"assign\",\"variant\":1}]}"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 8,
+           "name": "exp_rule_custom"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "customAssignment",
+     "params": {
+      "experimentName": "exp_rule_custom",
+      "variant": 2
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_rule_custom"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 8,
+         "name": "exp_rule_custom",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": false,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false,
+         "ruleOverride": true
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    }
+   ],
+   "requires": [
+    "assignmentRules"
+   ]
+  },
+  {
+   "name": "238 - Custom Assignment Rules - Variable Value Is Served Through A Rule Win",
+   "description": "variableValue resolves through a rule-won assignment (assigned:false but ruleOverride): the rule assigns variant 1, so variableValue('color') returns variant 1's 'blue' and queues the rule-flagged exposure. Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 9,
+      "name": "exp_rule_variable",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": "{\"color\":\"red\"}"
+       },
+       {
+        "name": "B",
+        "config": "{\"color\":\"blue\"}"
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "assignmentRules": "{\"rules\":[{\"name\":\"a\",\"type\":\"assign\",\"variant\":1}]}"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 9,
+           "name": "exp_rule_variable"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "variableValue",
+     "params": {
+      "key": "color",
+      "defaultValue": "default"
+     },
+     "expect": {
+      "result": "blue",
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 9,
+         "name": "exp_rule_variable",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": false,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false,
+         "ruleOverride": true
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    }
+   ],
+   "requires": [
+    "assignmentRules"
+   ]
+  },
+  {
+   "name": "239 - Custom Assignment Rules - Rule Variant Of A Removed Experiment Is Rebuilt, Not Served Stale",
+   "description": "javascript-sdk#67 edge case: a rule assigns variant 1 (ruleOverride:true). After a refresh whose data no longer contains the experiment, the cached rule variant is dropped and the experiment is rebuilt to variant 0 (assigned:false, ruleOverride:false) with a fresh exposure, instead of serving the stale rule variant. Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 10,
+      "name": "exp_rule_removed",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "assignmentRules": "{\"rules\":[{\"name\":\"us\",\"type\":\"assign\",\"variant\":1,\"conditions\":{\"eq\":[{\"var\":\"country\"},{\"value\":\"US\"}]}}]}"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 10,
+           "name": "exp_rule_removed"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "attribute",
+     "params": {
+      "name": "country",
+      "value": "US"
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_rule_removed"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 10,
+         "name": "exp_rule_removed",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": false,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false,
+         "ruleOverride": true
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    },
+    {
+     "action": "refresh",
+     "params": {
+      "newData": {
+       "experiments": []
+      }
+     },
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "refresh",
+        "data": {
+         "experiments": []
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "peek",
+     "params": {
+      "experimentName": "exp_rule_removed"
+     },
+     "expect": {
+      "result": 0,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_rule_removed"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 0,
+         "name": "exp_rule_removed",
+         "unit": null,
+         "variant": 0,
+         "assigned": false,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false,
+         "ruleOverride": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 2,
+      "events": []
+     }
+    }
+   ],
+   "requires": [
+    "assignmentRules"
+   ]
+  },
+  {
+   "name": "240 - Semver Operators - semver_gte Matches (1.5.0 vs 1.2.0)",
+   "description": "Strict audience uses semver_gte; with app_version='1.5.0' the filter matches (1.5.0 >= 1.2.0 is true), so the unit gets variant 1 (assigned). Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 101,
+      "name": "exp_semver_1",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": "{\"filter\":[{\"semver_gte\":[{\"var\":\"app_version\"},{\"value\":\"1.2.0\"}]}]}",
+      "audienceStrict": true,
+      "customFieldValues": null,
+      "assignmentRules": null
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 101,
+           "name": "exp_semver_1"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "attribute",
+     "params": {
+      "name": "app_version",
+      "value": "1.5.0"
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_semver_1"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 101,
+         "name": "exp_semver_1",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    }
+   ],
+   "requires": [
+    "semverOperators"
+   ]
+  },
+  {
+   "name": "241 - Semver Operators - semver_gte Does Not Match (1.1.0 vs 1.2.0)",
+   "description": "Strict audience uses semver_gte; with app_version='1.1.0' the filter does not match (1.1.0 >= 1.2.0 is false), so the unit gets variant 0 with audienceMismatch:true. Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 102,
+      "name": "exp_semver_2",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": "{\"filter\":[{\"semver_gte\":[{\"var\":\"app_version\"},{\"value\":\"1.2.0\"}]}]}",
+      "audienceStrict": true,
+      "customFieldValues": null,
+      "assignmentRules": null
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 102,
+           "name": "exp_semver_2"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "attribute",
+     "params": {
+      "name": "app_version",
+      "value": "1.1.0"
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_semver_2"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 102,
+         "name": "exp_semver_2",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": false,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": true
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    }
+   ],
+   "requires": [
+    "semverOperators"
+   ]
+  },
+  {
+   "name": "242 - Semver Operators - semver_eq Matches (v1.2 vs 1.2.0+build)",
+   "description": "Strict audience uses semver_eq; with app_version='v1.2' the filter matches (v1.2 == 1.2.0+build: leading v and +build metadata are ignored, missing patch is 0), so the unit gets variant 1 (assigned). Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 103,
+      "name": "exp_semver_3",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": "{\"filter\":[{\"semver_eq\":[{\"var\":\"app_version\"},{\"value\":\"1.2.0+build\"}]}]}",
+      "audienceStrict": true,
+      "customFieldValues": null,
+      "assignmentRules": null
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 103,
+           "name": "exp_semver_3"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "attribute",
+     "params": {
+      "name": "app_version",
+      "value": "v1.2"
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_semver_3"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 103,
+         "name": "exp_semver_3",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    }
+   ],
+   "requires": [
+    "semverOperators"
+   ]
+  },
+  {
+   "name": "243 - Semver Operators - semver_gt Matches (1.10.0 vs 1.9.0)",
+   "description": "Strict audience uses semver_gt; with app_version='1.10.0' the filter matches (1.10.0 > 1.9.0: numeric identifiers compare numerically, not lexicographically), so the unit gets variant 1 (assigned). Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 104,
+      "name": "exp_semver_4",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": "{\"filter\":[{\"semver_gt\":[{\"var\":\"app_version\"},{\"value\":\"1.9.0\"}]}]}",
+      "audienceStrict": true,
+      "customFieldValues": null,
+      "assignmentRules": null
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 104,
+           "name": "exp_semver_4"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "attribute",
+     "params": {
+      "name": "app_version",
+      "value": "1.10.0"
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_semver_4"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 104,
+         "name": "exp_semver_4",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    }
+   ],
+   "requires": [
+    "semverOperators"
+   ]
+  },
+  {
+   "name": "244 - Semver Operators - semver_lt Matches (1.0.0-beta vs 1.0.0)",
+   "description": "Strict audience uses semver_lt; with app_version='1.0.0-beta' the filter matches (1.0.0-beta < 1.0.0: a pre-release ranks below its release), so the unit gets variant 1 (assigned). Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 105,
+      "name": "exp_semver_5",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": "{\"filter\":[{\"semver_lt\":[{\"var\":\"app_version\"},{\"value\":\"1.0.0\"}]}]}",
+      "audienceStrict": true,
+      "customFieldValues": null,
+      "assignmentRules": null
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 105,
+           "name": "exp_semver_5"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "attribute",
+     "params": {
+      "name": "app_version",
+      "value": "1.0.0-beta"
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_semver_5"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 105,
+         "name": "exp_semver_5",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    }
+   ],
+   "requires": [
+    "semverOperators"
+   ]
+  },
+  {
+   "name": "245 - Semver Operators - semver_lte Matches (2.0.0 vs 2.0.0)",
+   "description": "Strict audience uses semver_lte; with app_version='2.0.0' the filter matches (2.0.0 <= 2.0.0 is true), so the unit gets variant 1 (assigned). Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 106,
+      "name": "exp_semver_6",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": "{\"filter\":[{\"semver_lte\":[{\"var\":\"app_version\"},{\"value\":\"2.0.0\"}]}]}",
+      "audienceStrict": true,
+      "customFieldValues": null,
+      "assignmentRules": null
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 106,
+           "name": "exp_semver_6"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "attribute",
+     "params": {
+      "name": "app_version",
+      "value": "2.0.0"
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_semver_6"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 106,
+         "name": "exp_semver_6",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    }
+   ],
+   "requires": [
+    "semverOperators"
+   ]
+  },
+  {
+   "name": "246 - Audience Re-Evaluation - Setting An Attribute That Satisfies A Strict Audience Reassigns And Re-Exposes",
+   "description": "A strict audience (tier == gold) is unmatched at first, so treatment is variant 0 with audienceMismatch:true. Setting tier=gold re-evaluates the audience on the next treatment: the unit now matches, is assigned variant 1, and a fresh exposure is queued (pending grows). Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 200,
+      "name": "exp_reeval_in",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": "{\"filter\":[{\"eq\":[{\"var\":\"tier\"},{\"value\":\"gold\"}]}]}",
+      "audienceStrict": true,
+      "customFieldValues": null,
+      "assignmentRules": null
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 200,
+           "name": "exp_reeval_in"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_reeval_in"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 200,
+         "name": "exp_reeval_in",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": false,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": true
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    },
+    {
+     "action": "attribute",
+     "params": {
+      "name": "tier",
+      "value": "gold"
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_reeval_in"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 200,
+         "name": "exp_reeval_in",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 2,
+      "events": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "247 - Audience Re-Evaluation - Setting An Attribute That Breaks A Strict Audience Reassigns To Control",
+   "description": "The mirror case: tier=gold matches first (variant 1, assigned). Setting tier=silver re-evaluates the audience on the next treatment: the unit no longer matches, is reassigned variant 0 with audienceMismatch:true, and a fresh exposure is queued. Expected results recorded from @absmartly/javascript-sdk 1.14.0 (javascript-sdk#67).",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 201,
+      "name": "exp_reeval_out",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.0,
+       1.0
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": "{\"filter\":[{\"eq\":[{\"var\":\"tier\"},{\"value\":\"gold\"}]}]}",
+      "audienceStrict": true,
+      "customFieldValues": null,
+      "assignmentRules": null
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "svk-unit-1"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 201,
+           "name": "exp_reeval_out"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "attribute",
+     "params": {
+      "name": "tier",
+      "value": "gold"
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_reeval_out"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 201,
+         "name": "exp_reeval_out",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    },
+    {
+     "action": "attribute",
+     "params": {
+      "name": "tier",
+      "value": "silver"
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_reeval_out"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 201,
+         "name": "exp_reeval_out",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": false,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": true
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 2,
+      "events": []
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -2,11 +2,17 @@ package com.absmartly.android.sdk;
 
 import android.content.Context;
 
+import com.absmartly.sdk.ContextConfig;
+import com.absmartly.sdk.json.ContextData;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 
@@ -96,15 +102,67 @@ public class ABSmartlyAndroidTest {
     }
 
     @Test
-    public void builder_allFieldsSet_returnsNonNull() {
-        ABSmartlyAndroid.Builder builder = ABSmartlyAndroid.builder()
+    public void builder_allFieldsSet_buildsWrapper() throws IOException {
+        try (ABSmartlyAndroid sdk = ABSmartlyAndroid.builder()
                 .endpoint("https://test.absmartly.io/v1")
                 .apiKey("test-api-key")
                 .application("test-app")
                 .environment("test-env")
-                .context(androidContext);
+                .context(androidContext)
+                .build()) {
+            assertNotNull(sdk.getSdk());
+            assertNotNull(sdk.getCache());
+        }
+    }
 
-        assertNotNull(builder);
+    @Test
+    public void builder_withApplicationVersion_buildsWrapper() throws IOException {
+        try (ABSmartlyAndroid sdk = ABSmartlyAndroid.builder()
+                .endpoint("https://test.absmartly.io/v1")
+                .apiKey("test-api-key")
+                .application("test-app")
+                .environment("test-env")
+                .applicationVersion("2.4.1")
+                .context(androidContext)
+                .build()) {
+            assertNotNull(sdk.getSdk());
+        }
+    }
+
+    @Test
+    public void close_dropsQueuedDelayedPublishAfterClose() throws Exception {
+        final RecordingHTTPClient http = new RecordingHTTPClient();
+        final ABSmartlyAndroid sdk = new ABSmartlyAndroid("https://test.absmartly.io/v1", "key", "app", "env",
+                null, androidContext, http);
+        // A long publish delay queues a timer on the wrapper's scheduler without publishing.
+        final com.absmartly.sdk.Context context = sdk.createContextWith(
+                ContextConfig.create().setUnit("session_id", "abc").setPublishDelay(60_000),
+                new ContextData());
+        context.track("goal", null);
+        assertEquals(1, context.getPendingCount());
+
+        final long start = System.nanoTime();
+        sdk.close();
+        assertTrue("close() must not wait for the delayed publish",
+                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) < 5_000);
+        // The delayed timer is cancelled, so nothing is published against the closed client.
+        assertTrue(http.requests("PUT").isEmpty());
+    }
+
+    @Test
+    public void close_afterContextClose_publishesPendingEventsFirst() throws Exception {
+        final RecordingHTTPClient http = new RecordingHTTPClient();
+        final ABSmartlyAndroid sdk = new ABSmartlyAndroid("https://test.absmartly.io/v1", "key", "app", "env",
+                null, androidContext, http);
+        final com.absmartly.sdk.Context context = sdk.createContextWith(
+                ContextConfig.create().setUnit("session_id", "abc").setPublishDelay(60_000),
+                new ContextData());
+        context.track("goal", null);
+
+        context.close();
+        sdk.close();
+
+        assertEquals(1, http.requests("PUT").size());
     }
 
     @Test(expected = NullPointerException.class)
