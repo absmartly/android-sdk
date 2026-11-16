@@ -6,9 +6,9 @@ The Android SDK has never been published: `com.absmartly.sdk:android-sdk` is not
 
 The notes below compare this release with `main` before it, which built against `com.absmartly.sdk:core-api:1.6.0`. Anyone who built `main` themselves should read them.
 
-### Release gate
+### Core dependency
 
-- This release depends on `com.absmartly.sdk:core-api-java6:1.9.0`, the core release of [absmartly/java-sdk#22](https://github.com/absmartly/java-sdk/pull/22). Until that artifact is on Maven Central, CI builds it from the #22 head (a temporary step in `android-ci.yml`), and the publish workflow cannot resolve it, so no Android release can be tagged before it.
+- This release depends on `com.absmartly.sdk:core-api-java6:1.9.0`, the core release of [absmartly/java-sdk#22](https://github.com/absmartly/java-sdk/pull/22).
 
 ### Known issue
 
