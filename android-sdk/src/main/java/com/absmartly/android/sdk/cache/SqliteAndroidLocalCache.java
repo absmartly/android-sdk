@@ -47,16 +47,6 @@ public class SqliteAndroidLocalCache extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    @NonNull
-    private String serialize(@NonNull Object value) {
-        try {
-            return MAPPER.writeValueAsString(value);
-        } catch (JsonProcessingException e) {
-            Log.e(TAG, "Failed to serialize " + value.getClass().getSimpleName(), e);
-            throw new CacheSerializationException("Failed to serialize " + value.getClass().getSimpleName(), e);
-        }
-    }
-
     @Nullable
     private <T> T deserialize(@Nullable String json, @NonNull Class<T> clazz) {
         if (json == null) {
@@ -74,36 +64,48 @@ public class SqliteAndroidLocalCache extends SQLiteOpenHelper {
         }
     }
 
-    // Public serialization helpers kept from the original SqliteAndroidLocalCache API. Unlike the
-    // cache reads, which skip corrupted rows, these throw on invalid input.
+    // Public serialization helpers kept from the original SqliteAndroidLocalCache API, with its
+    // contract: a null value serializes to the JSON text "null" and deserializes back to null, a
+    // Java null input is rejected by Jackson with IllegalArgumentException, and malformed JSON
+    // throws a RuntimeException whose cause is Jackson's exception. The cache reads below use the
+    // tolerant deserialize instead, so a corrupted row is skipped rather than failing the read.
 
     @NonNull
-    public String serializeEvent(@NonNull PublishEvent event) {
-        return serialize(event);
+    public String serializeEvent(@Nullable PublishEvent event) {
+        return serializeOrThrow(event);
     }
 
-    @NonNull
+    @Nullable
     public PublishEvent deserializeEvent(@NonNull String eventStr) {
         return deserializeOrThrow(eventStr, PublishEvent.class);
     }
 
     @NonNull
-    public String serializeContext(@NonNull ContextData context) {
-        return serialize(context);
+    public String serializeContext(@Nullable ContextData context) {
+        return serializeOrThrow(context);
     }
 
-    @NonNull
+    @Nullable
     public ContextData deserializeContext(@NonNull String contextStr) {
         return deserializeOrThrow(contextStr, ContextData.class);
     }
 
     @NonNull
-    private <T> T deserializeOrThrow(@NonNull String json, @NonNull Class<T> clazz) {
-        final T value = deserialize(json, clazz);
-        if (value == null) {
-            throw new CacheSerializationException("Failed to deserialize " + clazz.getSimpleName(), null);
+    private static String serializeOrThrow(@Nullable Object value) {
+        try {
+            return MAPPER.writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
-        return value;
+    }
+
+    @Nullable
+    private static <T> T deserializeOrThrow(String json, @NonNull Class<T> clazz) {
+        try {
+            return MAPPER.readValue(json, clazz);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void writePublishEvent(@NonNull PublishEvent publishEvent) {
@@ -111,14 +113,14 @@ public class SqliteAndroidLocalCache extends SQLiteOpenHelper {
             final SQLiteDatabase db = getWritableDatabase();
             db.beginTransaction();
             try {
-                db.execSQL("INSERT INTO events (event) VALUES (?)", new Object[]{serialize(publishEvent)});
+                db.execSQL("INSERT INTO events (event) VALUES (?)", new Object[]{serializeOrThrow(publishEvent)});
                 db.setTransactionSuccessful();
             } finally {
                 db.endTransaction();
             }
         } catch (SQLiteException e) {
             Log.e(TAG, "Failed to write publish event", e);
-            throw new CacheOperationException("Failed to write publish event", e);
+            throw e;
         }
     }
 
@@ -148,7 +150,7 @@ public class SqliteAndroidLocalCache extends SQLiteOpenHelper {
             }
         } catch (SQLiteException e) {
             Log.e(TAG, "Failed to retrieve publish events", e);
-            throw new CacheOperationException("Failed to retrieve publish events", e);
+            throw e;
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -162,14 +164,14 @@ public class SqliteAndroidLocalCache extends SQLiteOpenHelper {
             db.beginTransaction();
             try {
                 db.execSQL("DELETE FROM context");
-                db.execSQL("INSERT INTO context (context) VALUES (?)", new Object[]{serialize(contextData)});
+                db.execSQL("INSERT INTO context (context) VALUES (?)", new Object[]{serializeOrThrow(contextData)});
                 db.setTransactionSuccessful();
             } finally {
                 db.endTransaction();
             }
         } catch (SQLiteException e) {
             Log.e(TAG, "Failed to write context data", e);
-            throw new CacheOperationException("Failed to write context data", e);
+            throw e;
         }
     }
 
@@ -186,23 +188,11 @@ public class SqliteAndroidLocalCache extends SQLiteOpenHelper {
             return null;
         } catch (SQLiteException e) {
             Log.e(TAG, "Failed to get context data", e);
-            throw new CacheOperationException("Failed to get context data", e);
+            throw e;
         } finally {
             if (cursor != null) {
                 cursor.close();
             }
-        }
-    }
-
-    public static class CacheOperationException extends RuntimeException {
-        public CacheOperationException(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
-
-    public static class CacheSerializationException extends RuntimeException {
-        public CacheSerializationException(String message, Throwable cause) {
-            super(message, cause);
         }
     }
 }

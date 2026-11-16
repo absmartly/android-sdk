@@ -3,12 +3,14 @@ package com.absmartly.android.sdk;
 import android.content.Context;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 
 import com.absmartly.android.sdk.cache.SqliteAndroidLocalCache;
 import com.absmartly.sdk.json.ContextData;
 import com.absmartly.sdk.json.Experiment;
 import com.absmartly.sdk.json.PublishEvent;
 import com.absmartly.sdk.json.Unit;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 import org.junit.After;
 import org.junit.Before;
@@ -282,9 +284,9 @@ public class SqliteAndroidLocalCacheTest {
         replacement.experiments = new Experiment[0];
         try {
             cache.writeContextData(replacement);
-            fail("expected CacheOperationException");
-        } catch (SqliteAndroidLocalCache.CacheOperationException expected) {
-            // the transaction is rolled back
+            fail("expected SQLiteException");
+        } catch (SQLiteException expected) {
+            // the original storage exception reaches the caller and the transaction is rolled back
         } finally {
             db.execSQL("DROP TRIGGER fail_context_insert");
         }
@@ -332,13 +334,80 @@ public class SqliteAndroidLocalCacheTest {
         assertEquals("exp", decodedContext.experiments[0].name);
     }
 
-    @Test(expected = SqliteAndroidLocalCache.CacheSerializationException.class)
-    public void testDeserializeEventThrowsOnInvalidJson() {
-        cache.deserializeEvent("not json");
+    // The public helpers keep the contract they had before the tolerant cache reads were added:
+    // JSON null round-trips to null, Java null is rejected by Jackson with IllegalArgumentException
+    // and malformed JSON throws a RuntimeException that carries Jackson's exception as its cause.
+
+    @Test
+    public void testSerializationHelpersRoundTripNull() {
+        assertEquals("null", cache.serializeEvent(null));
+        assertEquals("null", cache.serializeContext(null));
+        assertNull(cache.deserializeEvent("null"));
+        assertNull(cache.deserializeContext("null"));
     }
 
-    @Test(expected = SqliteAndroidLocalCache.CacheSerializationException.class)
-    public void testDeserializeContextThrowsOnInvalidJson() {
-        cache.deserializeContext("not json");
+    @Test(expected = IllegalArgumentException.class)
+    public void testDeserializeEventRejectsJavaNull() {
+        cache.deserializeEvent(null);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testDeserializeContextRejectsJavaNull() {
+        cache.deserializeContext(null);
+    }
+
+    @Test
+    public void testDeserializeEventThrowsOnInvalidJsonWithCause() {
+        try {
+            cache.deserializeEvent("not json");
+            fail("expected RuntimeException");
+        } catch (RuntimeException e) {
+            assertTrue(String.valueOf(e.getCause()), e.getCause() instanceof JsonProcessingException);
+        }
+    }
+
+    @Test
+    public void testDeserializeContextThrowsOnInvalidJsonWithCause() {
+        try {
+            cache.deserializeContext("not json");
+            fail("expected RuntimeException");
+        } catch (RuntimeException e) {
+            assertTrue(String.valueOf(e.getCause()), e.getCause() instanceof JsonProcessingException);
+        }
+    }
+
+    @Test
+    public void testDeserializeContextIgnoresUnknownFields() {
+        ContextData data = cache.deserializeContext("{\"future\":1,\"experiments\":[{\"id\":5,"
+                + "\"name\":\"exp\",\"futureField\":{\"nested\":[1,2]},"
+                + "\"variants\":[{\"name\":\"A\",\"config\":null,\"futureVariantField\":true}]}]}");
+        assertEquals(1, data.experiments.length);
+        assertEquals("exp", data.experiments[0].name);
+        assertEquals("A", data.experiments[0].variants[0].name);
+    }
+
+    @Test
+    public void testWritePublishEventRethrowsSQLiteException() {
+        cache.getWritableDatabase().execSQL("DROP TABLE events");
+        PublishEvent event = new PublishEvent();
+        event.units = new Unit[0];
+        try {
+            cache.writePublishEvent(event);
+            fail("expected SQLiteException");
+        } catch (SQLiteException expected) {
+            // a caller's catch (SQLiteException) keeps handling storage failures
+        }
+    }
+
+    @Test(expected = SQLiteException.class)
+    public void testRetrievePublishEventsRethrowsSQLiteException() {
+        cache.getWritableDatabase().execSQL("DROP TABLE events");
+        cache.retrievePublishEvents();
+    }
+
+    @Test(expected = SQLiteException.class)
+    public void testGetContextDataRethrowsSQLiteException() {
+        cache.getWritableDatabase().execSQL("DROP TABLE context");
+        cache.getContextData();
     }
 }
