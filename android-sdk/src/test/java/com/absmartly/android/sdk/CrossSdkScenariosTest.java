@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,17 +22,21 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * Replays the cross-SDK assignment-rule, semver and audience re-evaluation scenarios (230-247 of
- * absmartly/cross-sdk-tests, recorded from the JavaScript SDK) against ABSmartlyAndroid.
+ * Replays the cross-SDK assignment-rule, semver, audience re-evaluation, system-attribute and
+ * X-Agent scenarios (230-253 and 300-323 of absmartly/cross-sdk-tests, recorded from the
+ * JavaScript SDK) against ABSmartlyAndroid. The fixture is a pinned copy; CI checks it against the
+ * upstream file at the recorded commit.
  *
  * The scenarios expect an exposure event from each step that queues one. Here the exposures are
  * collected in order and compared with what the context actually publishes at the end, which also
@@ -42,6 +47,21 @@ public class CrossSdkScenariosTest {
     private static final String RESOURCE = "cross-sdk/assignment_rules_semver_scenarios.json";
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    // Default client names for scenarios without a "client" object, as in the JavaScript wrapper.
+    private static final String DEFAULT_APPLICATION = "test";
+    private static final String DEFAULT_ENVIRONMENT = "test";
+
+    // Scenario capabilities ABSmartlyAndroid cannot provide, with the reason. A scenario that requires
+    // one of them is skipped, as the cross-SDK orchestrator does for an SDK that does not advertise it.
+    static final Map<String, String> UNSUPPORTED = new HashMap<>();
+
+    static {
+        UNSUPPORTED.put("clientNoEnvironment", "ABSmartlyAndroid requires a non-empty environment, so there is"
+                + " no client without one (scenarios 253 and 302)");
+        UNSUPPORTED.put("clientAcceptsBlankApplication", "ABSmartlyAndroid rejects a blank application, so"
+                + " there is no context to evaluate (scenario 323); scenario 322 covers the rejection");
+    }
+
     @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")
     public static Collection<Object[]> scenarios() throws IOException {
         final List<Object[]> result = new ArrayList<>();
@@ -49,6 +69,16 @@ public class CrossSdkScenariosTest {
             result.add(new Object[]{scenario.get("name").asText(), scenario});
         }
         return result;
+    }
+
+    static String unsupportedReason(JsonNode scenario) {
+        for (final JsonNode capability : scenario.path("requires")) {
+            final String reason = UNSUPPORTED.get(capability.asText());
+            if (reason != null) {
+                return reason;
+            }
+        }
+        return null;
     }
 
     private static JsonNode loadResource() throws IOException {
@@ -74,11 +104,7 @@ public class CrossSdkScenariosTest {
 
     @Before
     public void setUp() {
-        final Context androidContext = RuntimeEnvironment.getApplication();
         http = new RecordingHTTPClient();
-        // "development" matches none of the environments the scenarios scope rules to.
-        sdk = new ABSmartlyAndroid("https://test.absmartly.io/v1", "key", "website", "development", null,
-                androidContext, () -> http);
     }
 
     @After
@@ -86,11 +112,29 @@ public class CrossSdkScenariosTest {
         if (context != null && !context.isClosed()) {
             context.close();
         }
-        sdk.close();
+        if (sdk != null) {
+            sdk.close();
+        }
+    }
+
+    // Creates the SDK with the scenario's client names. Like the cross-SDK wrappers, only an omitted
+    // name falls back to the default; any string, including "", is passed on unchanged.
+    private void createSdk(JsonNode params) {
+        final JsonNode client = params.path("client");
+        final String application = client.has("application") ? client.get("application").asText()
+                : DEFAULT_APPLICATION;
+        final String environment = client.has("environment") ? client.get("environment").asText()
+                : DEFAULT_ENVIRONMENT;
+        final Context androidContext = RuntimeEnvironment.getApplication();
+        sdk = new ABSmartlyAndroid("https://test.absmartly.io/v1", "key", application, environment, null,
+                androidContext, () -> http);
     }
 
     @Test
     public void scenario() throws IOException {
+        final String unsupported = unsupportedReason(scenario);
+        Assume.assumeTrue(name + ": " + unsupported, unsupported == null);
+
         int index = 0;
         for (final JsonNode step : scenario.get("steps")) {
             runStep(index++, step);
@@ -107,7 +151,19 @@ public class CrossSdkScenariosTest {
         Object result = null;
         switch (action) {
             case "createContextWith":
-                context = sdk.createContextWith(contextConfig(params), contextData(scenario.get("contextData")));
+            case "createContext":
+                if (expect.has("status")) {
+                    assertCreationRejected(where, params, expect);
+                    return;
+                }
+                createSdk(params);
+                if ("createContext".equals(action)) {
+                    http.setContextData(MAPPER.writeValueAsString(scenario.get("contextData")));
+                    context = sdk.createContext(contextConfig(params));
+                    context.waitUntilReady();
+                } else {
+                    context = sdk.createContextWith(contextConfig(params), contextData(scenario.get("contextData")));
+                }
                 assertTrue(where, context.isReady());
                 assertCreateResult(where, expect.get("result"));
                 for (final JsonNode event : expect.get("events")) {
@@ -138,6 +194,15 @@ public class CrossSdkScenariosTest {
             case "customAssignment":
                 context.setCustomAssignment(params.get("experimentName").asText(), params.get("variant").asInt());
                 break;
+            case "setUnit":
+                context.setUnit(params.get("unitType").asText(), params.get("uid").asText());
+                break;
+            case "publish":
+                context.publish();
+                break;
+            case "capturedRequests":
+                assertCapturedRequests(where, params.get("method").asText(), expect);
+                return;
             case "refresh":
                 http.setContextData(MAPPER.writeValueAsString(params.get("newData")));
                 context.refresh();
@@ -151,7 +216,35 @@ public class CrossSdkScenariosTest {
         assertEquals(where, expect.get("result"), actual);
         for (final JsonNode event : expect.get("events")) {
             if ("exposure".equals(event.get("type").asText())) {
-                expectedExposures.add(event.get("data"));
+                // An exposure without data (scenario 321) only counts.
+                expectedExposures.add(event.has("data") ? event.get("data") : MAPPER.createObjectNode());
+            }
+        }
+    }
+
+    // The SDK rejects the client configuration, so no context is created. The cross-SDK wrappers
+    // report this as a 400 carrying the SDK's message; ABSmartlyAndroid throws IllegalArgumentException
+    // with its own message ("application is required").
+    private void assertCreationRejected(String where, JsonNode params, JsonNode expect) {
+        assertEquals(where, 400, expect.get("status").asInt());
+        try {
+            createSdk(params);
+            fail(where + ": expected the client configuration to be rejected");
+        } catch (IllegalArgumentException expected) {
+            assertTrue(where, expected.getMessage().endsWith("is required"));
+        }
+    }
+
+    private void assertCapturedRequests(String where, String method, JsonNode expect) {
+        final List<RecordingHTTPClient.Request> requests = http.requests(method);
+        assertTrue(where + ": requests", requests.size() >= expect.get("minRequests").asInt());
+        final Iterator<Map.Entry<String, JsonNode>> patterns = expect.get("headerPatterns").fields();
+        while (patterns.hasNext()) {
+            final Map.Entry<String, JsonNode> pattern = patterns.next();
+            final Pattern regex = Pattern.compile(pattern.getValue().asText().replace("{lang}", "android"));
+            for (final RecordingHTTPClient.Request request : requests) {
+                final String value = request.headers.get(pattern.getKey());
+                assertTrue(where + ": " + pattern.getKey() + "=" + value, value != null && regex.matcher(value).matches());
             }
         }
     }
@@ -197,6 +290,10 @@ public class CrossSdkScenariosTest {
     }
 
     private void assertPublishedExposures() throws IOException {
+        if (context == null) {
+            assertTrue(name + ": exposures without a context", expectedExposures.isEmpty());
+            return;
+        }
         if (context.getPendingCount() > 0) {
             context.publish();
         }
@@ -221,7 +318,7 @@ public class CrossSdkScenariosTest {
                         actual.get(field.getKey()));
             }
             // Scenarios recorded before ruleOverride existed leave it out; it must then be false.
-            if (!expected.has("ruleOverride")) {
+            if (expected.size() > 0 && !expected.has("ruleOverride")) {
                 assertEquals(name + ": exposure " + i + " ruleOverride", false,
                         actual.path("ruleOverride").asBoolean(false));
             }
