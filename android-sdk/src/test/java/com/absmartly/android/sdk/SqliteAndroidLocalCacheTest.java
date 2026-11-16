@@ -386,17 +386,12 @@ public class SqliteAndroidLocalCacheTest {
         assertEquals("A", data.experiments[0].variants[0].name);
     }
 
-    @Test
+    @Test(expected = SQLiteException.class)
     public void testWritePublishEventRethrowsSQLiteException() {
         cache.getWritableDatabase().execSQL("DROP TABLE events");
         PublishEvent event = new PublishEvent();
         event.units = new Unit[0];
-        try {
-            cache.writePublishEvent(event);
-            fail("expected SQLiteException");
-        } catch (SQLiteException expected) {
-            // a caller's catch (SQLiteException) keeps handling storage failures
-        }
+        cache.writePublishEvent(event);
     }
 
     @Test(expected = SQLiteException.class)

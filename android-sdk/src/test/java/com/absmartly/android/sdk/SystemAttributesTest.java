@@ -62,7 +62,6 @@ public class SystemAttributesTest {
         return ruleData(condition, null);
     }
 
-    // environments, when not null, is the JSON array of environments the rule is scoped to.
     private static ContextData ruleData(String condition, String environments) throws IOException {
         final byte[] bytes = ruleJson(condition, environments, "r").getBytes(StandardCharsets.UTF_8);
         return new DefaultContextDataDeserializer().deserialize(bytes, 0, bytes.length);
@@ -310,7 +309,6 @@ public class SystemAttributesTest {
         assertEquals(1, context.getTreatment(EXP));
         assertEquals(1, context.getPendingCount());
 
-        // The rules JSON changes (a renamed rule) but still assigns variant 1.
         http.setContextData(ruleJson("null", null, "renamed"));
         context.refresh();
         assertEquals(1, context.getTreatment(EXP));

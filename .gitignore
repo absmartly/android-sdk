@@ -8,3 +8,7 @@ local.properties
 .claude/
 AUDIT_REPORT.md
 FIXES_IMPLEMENTED.md
+
+# Python bytecode caches
+__pycache__/
+*.pyc
