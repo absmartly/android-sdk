@@ -78,7 +78,6 @@ public class ABSmartlyAndroid implements Closeable {
         };
     }
 
-    // Package-private so tests can supply the HTTP transport.
     ABSmartlyAndroid(
             @NonNull String endpoint,
             @NonNull String apiKey,
@@ -181,7 +180,6 @@ public class ABSmartlyAndroid implements Closeable {
     @Override
     public void close() throws IOException {
         IOException sdkException = null;
-        // Stop the publish and refresh timers before the client closes.
         scheduler.shutdown();
         try {
             sdk.close();

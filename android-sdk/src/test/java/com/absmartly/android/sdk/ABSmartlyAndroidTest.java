@@ -193,7 +193,6 @@ public class ABSmartlyAndroidTest {
         final RecordingHTTPClient http = new RecordingHTTPClient();
         final ABSmartlyAndroid sdk = new ABSmartlyAndroid("https://test.absmartly.io/v1", "key", "app", "env",
                 null, androidContext, () -> http);
-        // A long publish delay queues a timer on the wrapper's scheduler without publishing.
         final com.absmartly.sdk.Context context = sdk.createContextWith(
                 ContextConfig.create().setUnit("session_id", "abc").setPublishDelay(60_000),
                 new ContextData());
@@ -204,7 +203,6 @@ public class ABSmartlyAndroidTest {
         sdk.close();
         assertTrue("close() must not wait for the delayed publish",
                 TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) < 5_000);
-        // The delayed timer is cancelled, so nothing is published against the closed client.
         assertTrue(http.requests("PUT").isEmpty());
     }
 

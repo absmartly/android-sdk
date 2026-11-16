@@ -286,7 +286,6 @@ public class SqliteAndroidLocalCacheTest {
             cache.writeContextData(replacement);
             fail("expected SQLiteException");
         } catch (SQLiteException expected) {
-            // the original storage exception reaches the caller and the transaction is rolled back
         } finally {
             db.execSQL("DROP TRIGGER fail_context_insert");
         }

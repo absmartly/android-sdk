@@ -124,7 +124,6 @@ public class SemverOperatorsTest {
                 Arrays.<Object>asList(appVersion, Collections.singletonMap("value", "2.4.0"))), vars));
         assertTrue(jsonExpr.evaluateBooleanExpr(Collections.<String, Object>singletonMap("semver_lt",
                 Arrays.<Object>asList(appVersion, Collections.singletonMap("value", "2.4.1"))), vars));
-        // A missing variable never matches.
         assertFalse(jsonExpr.evaluateBooleanExpr(Collections.<String, Object>singletonMap("semver_eq",
                 Arrays.<Object>asList(Collections.singletonMap("var", "missing"),
                         Collections.singletonMap("value", "2.4.1"))), vars));
