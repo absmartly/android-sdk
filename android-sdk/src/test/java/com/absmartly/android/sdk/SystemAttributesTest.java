@@ -64,17 +64,21 @@ public class SystemAttributesTest {
 
     // environments, when not null, is the JSON array of environments the rule is scoped to.
     private static ContextData ruleData(String condition, String environments) throws IOException {
-        final String rules = "{\"rules\":[{\"name\":\"r\",\"type\":\"assign\",\"variant\":1,\"conditions\":"
-                + condition + (environments != null ? ",\"environments\":" + environments : "") + "}]}";
-        final String json = "{\"experiments\":[{\"id\":1,\"name\":\"" + EXP + "\",\"iteration\":1,"
+        final byte[] bytes = ruleJson(condition, environments, "r").getBytes(StandardCharsets.UTF_8);
+        return new DefaultContextDataDeserializer().deserialize(bytes, 0, bytes.length);
+    }
+
+    private static String ruleJson(String condition, String environments, String ruleName) throws IOException {
+        final String rules = "{\"rules\":[{\"name\":\"" + ruleName + "\",\"type\":\"assign\",\"variant\":1,"
+                + "\"conditions\":" + condition + (environments != null ? ",\"environments\":" + environments : "")
+                + "}]}";
+        return "{\"experiments\":[{\"id\":1,\"name\":\"" + EXP + "\",\"iteration\":1,"
                 + "\"unitType\":\"session_id\",\"seedHi\":0,\"seedLo\":0,\"split\":[1,0],"
                 + "\"trafficSeedHi\":0,\"trafficSeedLo\":0,\"trafficSplit\":[0,1],\"fullOnVariant\":0,"
                 + "\"applications\":[{\"name\":\"android-app\"}],"
                 + "\"variants\":[{\"name\":\"A\",\"config\":null},{\"name\":\"B\",\"config\":null}],"
                 + "\"audience\":null,\"audienceStrict\":false,"
                 + "\"assignmentRules\":" + MAPPER.writeValueAsString(rules) + "}]}";
-        final byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
-        return new DefaultContextDataDeserializer().deserialize(bytes, 0, bytes.length);
     }
 
     private static ContextConfig config(boolean includeSystemAttributes) {
@@ -296,6 +300,58 @@ public class SystemAttributesTest {
         // The condition matches either way; only the scope decides.
         assertEquals(1, treatment(false, "null", "[\"production\"]", "staging"));
         assertEquals(0, treatment(false, "null", "[\"staging\"]", "staging"));
+    }
+
+    @Test
+    public void exposedRuleWinIsNotExposedAgainAfterARefreshWithTheSameOutcome() throws IOException {
+        http.setContextData(ruleJson("null", null, "first"));
+        final com.absmartly.sdk.Context context = create(null).createContext(config(false));
+        context.waitUntilReady();
+        assertEquals(1, context.getTreatment(EXP));
+        assertEquals(1, context.getPendingCount());
+
+        // The rules JSON changes (a renamed rule) but still assigns variant 1.
+        http.setContextData(ruleJson("null", null, "renamed"));
+        context.refresh();
+        assertEquals(1, context.getTreatment(EXP));
+        assertEquals(1, context.getPendingCount());
+
+        context.publish();
+        assertEquals(1, lastPublish().get("exposures").size());
+        context.close();
+    }
+
+    @Test
+    public void exposedRuleWinKeepsItsExposureWhenADifferentRuleGivesTheSameVariant() throws IOException {
+        // First a split rule whose unit (session_id) is not set gives the no-unit variant 0. Setting
+        // country makes an earlier assign rule with the same variant 0 match: the exposed assignment
+        // is kept, so the decision is published once.
+        final String rules = "{\"rules\":["
+                + "{\"name\":\"us\",\"type\":\"assign\",\"variant\":0,"
+                + "\"conditions\":{\"eq\":[{\"var\":\"country\"},{\"value\":\"US\"}]}},"
+                + "{\"name\":\"split\",\"type\":\"split\",\"percentages\":\"0/100\"}]}";
+        final String json = "{\"experiments\":[{\"id\":1,\"name\":\"" + EXP + "\",\"iteration\":1,"
+                + "\"unitType\":\"session_id\",\"seedHi\":0,\"seedLo\":0,\"split\":[0,1],"
+                + "\"trafficSeedHi\":0,\"trafficSeedLo\":0,\"trafficSplit\":[0,1],\"fullOnVariant\":0,"
+                + "\"applications\":[{\"name\":\"android-app\"}],"
+                + "\"variants\":[{\"name\":\"A\",\"config\":null},{\"name\":\"B\",\"config\":null}],"
+                + "\"audience\":null,\"audienceStrict\":false,"
+                + "\"assignmentRules\":" + MAPPER.writeValueAsString(rules) + "}]}";
+        final byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+        final com.absmartly.sdk.Context context = create(null).createContextWith(
+                ContextConfig.create().setUnit("user_id", "u1").setPublishDelay(-1),
+                new DefaultContextDataDeserializer().deserialize(bytes, 0, bytes.length));
+
+        assertEquals(0, context.getTreatment(EXP));
+        context.setAttribute("country", "US");
+        assertEquals(0, context.getTreatment(EXP));
+        assertEquals(1, context.getPendingCount());
+
+        context.publish();
+        final JsonNode exposures = lastPublish().get("exposures");
+        assertEquals(1, exposures.size());
+        assertTrue(exposures.get(0).get("ruleOverride").asBoolean());
+        context.close();
     }
 
     @Test
