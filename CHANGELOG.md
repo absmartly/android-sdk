@@ -10,6 +10,10 @@ The notes below compare this release with `main` before it, which built against 
 
 - This release depends on `com.absmartly.sdk:core-api-java6:1.9.0`, the core release of [absmartly/java-sdk#22](https://github.com/absmartly/java-sdk/pull/22). Until that artifact is on Maven Central, CI builds it from the #22 head (a temporary step in `android-ci.yml`), and the publish workflow cannot resolve it, so no Android release can be tagged before it.
 
+### Known issue
+
+- After you set an attribute, a context re-checks the audience and assignment rules of every cached assignment on each later read, not just once, until the assignment is rebuilt. Results are correct, but such a read costs about 1 µs instead of about 60 ns (HotSpot, one strict-audience experiment; not measured on ART). This is in the core (`core-api-java6` 1.9.0 and `core-api` 1.7.0 and later) and will be fixed there; the Android SDK picks the fix up with the core release that has it.
+
 ### Dependencies
 
 - The SDK now depends on `com.absmartly.sdk:core-api-java6` instead of `com.absmartly.sdk:core-api`, and exposes it as an `api` dependency. `core-api` 1.8.0 and later need Android API 24; `core-api-java6` has the same API with the streamsupport future types and supports the SDK's `minSdk` 21.

@@ -35,6 +35,14 @@ dependencies {
 }
 ```
 
+The SDK brings in the Java SDK core as `com.absmartly.sdk:core-api-java6`, which supports Android 5.0 and later. Do not also depend on `com.absmartly.sdk:core-api`: both artifacts contain the same classes, so the build fails with duplicate classes, and mixing versions fails at run time. If another dependency brings in `core-api`, exclude it:
+
+```gradle
+configurations.all {
+    exclude group: 'com.absmartly.sdk', module: 'core-api'
+}
+```
+
 #### Android 6.0 or earlier
 
 When targeting Android 6.0 or earlier, the default Java Security Provider will not work. Using [Conscrypt](https://github.com/google/conscrypt) is recommended. Follow these [instructions](https://github.com/google/conscrypt/blob/master/README.md) to install it as a dependency.
