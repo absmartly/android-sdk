@@ -12,7 +12,7 @@ The notes below compare this release with `main` before it, which built against 
 
 ### Known issue
 
-- After you set an attribute, a context re-checks the audience and assignment rules of every cached assignment on each later read, not just once, until the assignment is rebuilt. Results are correct, but such a read costs about 1 µs instead of about 60 ns (HotSpot, one strict-audience experiment; not measured on ART). This is in the core (`core-api-java6` 1.9.0 and `core-api` 1.7.0 and later) and will be fixed there; the Android SDK picks the fix up with the core release that has it.
+- After you set an attribute, a context re-checks the audience and assignment rules of every cached assignment on each later read, not just once, until the assignment is rebuilt. Results are correct, but each such read rebuilds the attribute map and re-evaluates the audience: about 0.6–1 µs and about 1.9 KB allocated per read, instead of about 50–60 ns and no allocation with `core-api` 1.6.0 (HotSpot, one strict-audience experiment; not measured on ART). This is in the core (`core-api-java6` 1.9.0 and `core-api` 1.7.0 and later) and will be fixed there; the Android SDK picks the fix up with the core release that has it.
 
 ### Dependencies
 
