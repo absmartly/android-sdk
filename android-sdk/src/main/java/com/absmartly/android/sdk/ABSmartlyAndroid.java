@@ -237,9 +237,10 @@ public class ABSmartlyAndroid implements Closeable {
         }
 
         /**
-         * The application version, for example "2.4.1". It is the app_version system attribute that
-         * audience filters and assignment rules can compare with the semver_* operators, and is sent
-         * as the X-Application-Version header when it is a whole number.
+         * The application version, for example "42" or "2.4.1". It is sent as the
+         * X-Application-Version header when it is a whole number, and as "0" otherwise, because the
+         * collector only accepts whole numbers. Audience filters and assignment rules do not see it:
+         * set an app_version attribute on the context to target on it.
          */
         public Builder applicationVersion(@Nullable String applicationVersion) {
             this.applicationVersion = applicationVersion;

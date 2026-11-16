@@ -59,8 +59,13 @@ public class SystemAttributesTest {
     // One two-variant experiment whose only rule assigns variant 1 when the condition matches. Its
     // normal split sends every unit to variant 0.
     private static ContextData ruleData(String condition) throws IOException {
+        return ruleData(condition, null);
+    }
+
+    // environments, when not null, is the JSON array of environments the rule is scoped to.
+    private static ContextData ruleData(String condition, String environments) throws IOException {
         final String rules = "{\"rules\":[{\"name\":\"r\",\"type\":\"assign\",\"variant\":1,\"conditions\":"
-                + condition + "}]}";
+                + condition + (environments != null ? ",\"environments\":" + environments : "") + "}]}";
         final String json = "{\"experiments\":[{\"id\":1,\"name\":\"" + EXP + "\",\"iteration\":1,"
                 + "\"unitType\":\"session_id\",\"seedHi\":0,\"seedLo\":0,\"split\":[1,0],"
                 + "\"trafficSeedHi\":0,\"trafficSeedLo\":0,\"trafficSplit\":[0,1],\"fullOnVariant\":0,"
@@ -135,7 +140,7 @@ public class SystemAttributesTest {
     }
 
     @Test
-    public void systemAttributesAreLeftOutByDefault() throws IOException {
+    public void onlyUserAttributesArePublishedByDefault() throws IOException {
         final com.absmartly.sdk.Context context = create("2.4.1").createContextWith(config(false), ruleData("null"));
         context.setAttribute("age", 21);
         context.track("goal", null);
@@ -149,45 +154,43 @@ public class SystemAttributesTest {
     }
 
     @Test
-    public void systemAttributesArePrependedWithAndroidIdentity() throws IOException {
+    public void includeSystemAttributesPublishesOnlyAndroidIdentity() throws IOException {
         final com.absmartly.sdk.Context context = create("2.4.1").createContextWith(config(true), ruleData("null"));
         context.setAttribute("age", 21);
         context.track("goal", null);
         context.publish();
 
+        // application and environment are added by the collector, and the SDK provides no app_version.
         final JsonNode event = lastPublish();
         final List<String> expected = new ArrayList<>();
         expected.add("sdk_name");
         expected.add("sdk_version");
-        expected.add("application");
-        expected.add("environment");
-        expected.add("app_version");
         expected.add("age");
         assertEquals(expected, attributeNames(event));
         assertEquals("absmartly-android-sdk", attribute(event, "sdk_name").asText());
         assertEquals(ABSmartlyAndroid.SDK_VERSION, attribute(event, "sdk_version").asText());
-        assertEquals("android-app", attribute(event, "application").asText());
-        assertEquals("production", attribute(event, "environment").asText());
-        assertEquals("2.4.1", attribute(event, "app_version").asText());
 
         // System attributes apply to every event in the publish, so they share the earliest setAt.
-        final long setAt = event.get("attributes").get(0).get("setAt").asLong();
-        for (int i = 1; i < 5; ++i) {
-            assertEquals(setAt, event.get("attributes").get(i).get("setAt").asLong());
-        }
+        assertEquals(event.get("attributes").get(0).get("setAt").asLong(),
+                event.get("attributes").get(1).get("setAt").asLong());
         context.close();
     }
 
     @Test
-    public void appVersionIsLeftOutWhenNotSet() throws IOException {
-        final com.absmartly.sdk.Context context = create(null).createContextWith(config(true), ruleData("null"));
-        context.track("goal", null);
-        context.publish();
+    public void userAppVersionIsPublishedWithEitherSetting() throws IOException {
+        for (final boolean includeSystemAttributes : new boolean[]{false, true}) {
+            final com.absmartly.sdk.Context context = create("2.4.1")
+                    .createContextWith(config(includeSystemAttributes), ruleData("null"));
+            context.setAttribute("app_version", "9.9.9");
+            context.track("goal", null);
+            context.publish();
 
-        final JsonNode event = lastPublish();
-        assertFalse(attributeNames(event).contains("app_version"));
-        assertTrue(attributeNames(event).contains("sdk_name"));
-        context.close();
+            final JsonNode event = lastPublish();
+            assertEquals(String.valueOf(includeSystemAttributes), "9.9.9", attribute(event, "app_version").asText());
+            context.close();
+            sdk.close();
+            sdk = null;
+        }
     }
 
     @Test
@@ -212,35 +215,87 @@ public class SystemAttributesTest {
     }
 
     @Test
-    public void wholeNumberApplicationVersionIsSentAsHeader() throws IOException {
-        final com.absmartly.sdk.Context context = create("42").createContextWith(config(false), ruleData("null"));
-        context.track("goal", null);
-        context.publish();
-        assertEquals("42", http.requests("PUT").get(0).headers.get("X-Application-Version"));
+    public void configuredNamesAreNotUserAttributes() throws IOException {
+        final com.absmartly.sdk.Context context = create("2.4.1").createContextWith(config(true), ruleData("null"));
+        assertTrue(context.getAttributes().isEmpty());
+        assertEquals(null, context.getAttribute("application"));
+        assertEquals(null, context.getAttribute("environment"));
         context.close();
     }
 
     @Test
-    public void semverApplicationVersionSendsZeroHeader() throws IOException {
-        final com.absmartly.sdk.Context context = create("2.4.1").createContextWith(config(false), ruleData("null"));
-        context.track("goal", null);
-        context.publish();
-        assertEquals("0", http.requests("PUT").get(0).headers.get("X-Application-Version"));
-        context.close();
-    }
-
-    @Test
-    public void systemAttributesAreAvailableToRuleConditions() throws IOException {
-        final String[] conditions = {
-                "{\"eq\":[{\"var\":\"application\"},{\"value\":\"android-app\"}]}",
-                "{\"eq\":[{\"var\":\"environment\"},{\"value\":\"production\"}]}",
-                "{\"semver_gte\":[{\"var\":\"app_version\"},{\"value\":\"2.4.0\"}]}",
+    public void applicationVersionHeaderIsAWholeNumberOnGetAndPut() throws IOException {
+        final String[][] cases = {
+                {null, "0"},
+                {"", "0"},
+                {"   ", "0"},
+                {"1004", "1004"},
+                {" 1004 ", "1004"},
+                {"3.2.1", "0"},
+                {"-1", "0"},
+                {"\u0661\u0662\u0663", "0"},
+                {"123456789012345678", "123456789012345678"},
+                {"1234567890123456789", "0"},
         };
-        create("2.4.1");
-        for (final String condition : conditions) {
-            assertEquals(condition, 1, sdk.createContextWith(config(true), ruleData(condition)).getTreatment(EXP));
-            assertEquals(condition, 0, sdk.createContextWith(config(false), ruleData(condition)).getTreatment(EXP));
+        for (final String[] c : cases) {
+            http = new RecordingHTTPClient();
+            http.setContextData("{\"experiments\":[]}");
+            final com.absmartly.sdk.Context context = create(c[0]).createContext(config(false));
+            context.waitUntilReady();
+            context.track("goal", null);
+            context.publish();
+
+            assertEquals("GET " + c[0], c[1], http.requests("GET").get(0).headers.get("X-Application-Version"));
+            assertEquals("PUT " + c[0], c[1], http.requests("PUT").get(0).headers.get("X-Application-Version"));
+            context.close();
+            sdk.close();
+            sdk = null;
         }
+    }
+
+    private int treatment(boolean includeSystemAttributes, String condition, String environments,
+            String userEnvironment) throws IOException {
+        final com.absmartly.sdk.Context context = sdk.createContextWith(config(includeSystemAttributes),
+                ruleData(condition, environments));
+        if (userEnvironment != null) {
+            context.setAttribute("environment", userEnvironment);
+        }
+        final int treatment = context.getTreatment(EXP);
+        context.close();
+        return treatment;
+    }
+
+    @Test
+    public void configuredApplicationAndEnvironmentAreAlwaysEvaluated() throws IOException {
+        create("2.4.1");
+        for (final boolean flag : new boolean[]{false, true}) {
+            assertEquals(1, treatment(flag, "{\"eq\":[{\"var\":\"application\"},{\"value\":\"android-app\"}]}", null, null));
+            assertEquals(1, treatment(flag, "{\"eq\":[{\"var\":\"environment\"},{\"value\":\"production\"}]}", null, null));
+        }
+    }
+
+    @Test
+    public void appVersionIsNotProvidedToConditions() throws IOException {
+        // A presence check, not a comparison: any injected value, whatever it is, makes it fail.
+        create("2.4.1");
+        for (final boolean flag : new boolean[]{false, true}) {
+            assertEquals(1, treatment(flag, "{\"null\":{\"var\":\"app_version\"}}", null, null));
+        }
+    }
+
+    @Test
+    public void userEnvironmentOverridesTheConfiguredOneInConditions() throws IOException {
+        create(null);
+        assertEquals(1, treatment(false, "{\"eq\":[{\"var\":\"environment\"},{\"value\":\"staging\"}]}", null, "staging"));
+        assertEquals(0, treatment(false, "{\"eq\":[{\"var\":\"environment\"},{\"value\":\"production\"}]}", null, "staging"));
+    }
+
+    @Test
+    public void ruleScopeUsesTheConfiguredEnvironment() throws IOException {
+        create(null);
+        // The condition matches either way; only the scope decides.
+        assertEquals(1, treatment(false, "null", "[\"production\"]", "staging"));
+        assertEquals(0, treatment(false, "null", "[\"staging\"]", "staging"));
     }
 
     @Test

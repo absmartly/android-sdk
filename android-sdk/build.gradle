@@ -65,15 +65,17 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
-    // core-api 1.7.0 adds assignment rules, the semver_* operators, system attributes and the
-    // versioned X-Agent header. 1.8.0 moved to java.util.concurrent (API 24+), so stay on 1.7.x
-    // while minSdk is 21.
-    api 'com.absmartly.sdk:core-api:1.7.0'
+    // core-api-java6 is the Java 6 / Android API 19+ build of the Java SDK core (core-api itself
+    // needs API 24+ since 1.8.0). 1.9.0 is the release of absmartly/java-sdk#22: audiences and
+    // assignment rules always see the configured application and environment, and no app_version
+    // is injected or published. Use only one of core-api and core-api-java6: they hold the same
+    // classes.
+    api 'com.absmartly.sdk:core-api-java6:1.9.0'
     api 'net.sourceforge.streamsupport:streamsupport-minifuture:1.7.4'
     // Jackson 2.14+ introspection calls Constructor/Method.getParameterCount(), which is
     // unavailable before Android API 26. The SDK declares minSdk 21, so the dependency is
-    // pinned to the latest 2.13.x line (last release compatible with API 21-25). This also
-    // matches the version core-api 1.7.0 brings in transitively (2.13.4.2).
+    // pinned to the latest 2.13.x line (last release compatible with API 21-25), which is newer
+    // than the 2.13.4.2 that core-api-java6 brings in transitively.
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.5'
 }
 

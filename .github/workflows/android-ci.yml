@@ -36,6 +36,43 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             "platforms;android-34" "build-tools;34.0.0"
 
+      # TEMPORARY, remove once core-api-java6 1.9.0 is on Maven Central: this branch needs the core
+      # release of absmartly/java-sdk#22, which is not published yet. Build it from the pinned #22
+      # head as 1.9.0 into the local Maven repository (settings.gradle resolves mavenLocal first).
+      # Releases cannot use it: publish.yml has no such step, so it fails to resolve 1.9.0 until the
+      # real artifact is published.
+      - name: Set up JDK 11 for java-sdk
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+
+      - name: Build core-api-java6 1.9.0 from java-sdk#22
+        env:
+          JAVA_SDK_SHA: c39aa52f99936bb319058a1d4ef937cc882302cd
+        run: |
+          git clone --quiet https://github.com/absmartly/java-sdk.git "$RUNNER_TEMP/java-sdk"
+          cd "$RUNNER_TEMP/java-sdk"
+          git checkout --quiet "$JAVA_SDK_SHA"
+          sed -i 's/VERSION = "1.8.0"/VERSION = "1.9.0"/' build.gradle
+          JAVA_HOME="$JAVA_HOME_11_X64" ./gradlew --no-daemon -q \
+            :core-api-java6:jar :core-api-java6:generatePomFileForReleasePublication
+          dir="$HOME/.m2/repository/com/absmartly/sdk/core-api-java6/1.9.0"
+          mkdir -p "$dir"
+          cp core-api-java6/build/libs/core-api-java6.jar "$dir/core-api-java6-1.9.0.jar"
+          cp core-api-java6/build/publications/release/pom-default.xml "$dir/core-api-java6-1.9.0.pom"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Check the vendored cross-SDK scenarios
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 -I .github/scripts/check_cross_sdk_scenarios.py
+
       - name: Run unit tests
         run: ./gradlew :android-sdk:test --no-daemon --stacktrace
 
