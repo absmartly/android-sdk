@@ -87,7 +87,7 @@ final ABSmartlyAndroid sdk = ABSmartlyAndroid.create(
 
 `ABSmartlyAndroid` delegates `createContext` and `createContextWith` to the underlying Java SDK, closes both the Java SDK and the cache in `close()`, and exposes `getCache()` to access the `SqliteAndroidLocalCache` directly. Call `getSdk()` to access the underlying `ABSmartly` Java SDK instance for advanced use cases.
 
-`applicationVersion` is optional. It becomes the `app_version` [system attribute](#system-attributes), which audience filters and assignment rules can compare with the [semver operators](#semver-operators). It is also sent as the `X-Application-Version` header when it is a whole number such as `42`; any other version, such as `2.4.1`, is sent as `0` there because the collector only accepts whole numbers.
+`applicationVersion` is optional. It is sent as the `X-Application-Version` header when it is a whole number such as `42`; any other version, such as `2.4.1`, is sent as `0` there because the collector only accepts whole numbers. The SDK does not make it available to audience filters or assignment rules: to target on the app version, set an `app_version` attribute yourself (see [semver operators](#semver-operators)).
 
 `ABSmartlyAndroid` identifies itself to the collector with `X-Agent: absmartly-android-sdk/<version>` (`ABSmartlyAndroid.AGENT`), so the backend can tell which SDK and version sent events. Contexts created with the Java SDK directly send the Java SDK's agent, `absmartly-java-sdk/<version>`, instead.
 
@@ -341,17 +341,16 @@ context.setAttributes(attributes);
 
 ### System Attributes
 
-With `setIncludeSystemAttributes(true)`, the context makes `application`, `environment` and `app_version` available to audience filters and assignment-rule conditions (an attribute you set yourself with the same name takes precedence), and prepends these attributes to every publish:
+Audience filters and assignment-rule conditions always see the configured `application` and `environment` as attributes, so an audience such as `environment == "production"` matches without any setup. An attribute you set yourself with the same name takes precedence, including one set after a treatment was read (the cached assignment is re-checked). These names are not real attributes: they are not published (the collector adds the application and environment to every event itself) and `getAttributes()` does not return them. The SDK does not provide `app_version`; an `app_version` attribute you set yourself is evaluated and published like any other attribute.
 
-| Attribute     | Value                                                              |
-|:--------------|:-------------------------------------------------------------------|
-| `sdk_name`    | `absmartly-android-sdk`                                            |
-| `sdk_version` | The Android SDK version (`ABSmartlyAndroid.SDK_VERSION`)           |
-| `application` | The configured application                                         |
-| `environment` | The configured environment                                         |
-| `app_version` | The configured application version; left out when it is not set or `0` |
+With `setIncludeSystemAttributes(true)`, every publish also carries these attributes:
 
-Their `setAt` is the time of the earliest exposure or goal in the publish. A system attribute is not sent when you set an attribute with the same name yourself. System attributes are disabled by default.
+| Attribute     | Value                                                    |
+|:--------------|:---------------------------------------------------------|
+| `sdk_name`    | `absmartly-android-sdk`                                  |
+| `sdk_version` | The Android SDK version (`ABSmartlyAndroid.SDK_VERSION`) |
+
+Their `setAt` is the time of the earliest exposure or goal in the publish. One is not sent when you set an attribute with the same name yourself. They are disabled by default.
 
 ```java
 final ContextConfig contextConfig = ContextConfig.create()
@@ -377,7 +376,11 @@ final int treatment = context.getTreatment("exp_test_experiment"); // the matchi
 
 Audience filters and rule conditions can compare versions with `semver_eq`, `semver_gt`, `semver_gte`, `semver_lt` and `semver_lte`, for example `app_version >= 2.4.0`. A leading `v` and build metadata are ignored, missing parts count as `0` (`1.2` equals `1.2.0`), and a pre-release ranks below its release (`2.4.0-beta.1 < 2.4.0`).
 
-Comparison is permissive, matching the JavaScript and Java SDKs: a non-numeric part is compared as text and ranks above any number, so an `app_version` of `"unknown"` or `"1.x"` satisfies `semver_gte` against `"2.4.0"`. Only a missing value, a value that is not a string, number or boolean, or one with an empty version core (`""`, `"v"`, `"+build"`) never matches. Make sure `app_version` holds a real version when targeting on it.
+Comparison is permissive, matching the JavaScript and Java SDKs: a non-numeric part is compared as text and ranks above any number, so an `app_version` of `"unknown"` or `"1.x"` satisfies `semver_gte` against `"2.4.0"`. Only a missing value, a value that is not a string, number or boolean, or one with an empty version core (`""`, `"v"`, `"+build"`) never matches. Make sure the `app_version` attribute you set holds a real version when targeting on it:
+
+```java
+context.setAttribute("app_version", BuildConfig.VERSION_NAME);
+```
 
 ### Tracking Goals
 
@@ -767,7 +770,7 @@ cache.writePublishEvent(publishEvent);
 List<PublishEvent> pendingEvents = cache.retrievePublishEvents();
 ```
 
-`serializeEvent`, `deserializeEvent`, `serializeContext` and `deserializeContext` convert events and context data to and from the JSON stored in the database; the two `deserialize` methods throw `CacheSerializationException` on invalid JSON.
+`serializeEvent`, `deserializeEvent`, `serializeContext` and `deserializeContext` convert events and context data to and from the JSON stored in the database. A `null` value serializes to `"null"` and deserializes back to `null`; invalid JSON throws a `RuntimeException` whose cause is the Jackson exception. The cache reads skip a corrupted row instead of failing. A database error reaches the caller as the original `SQLiteException`.
 
 The SQLite database is named `absmartly.db` and is automatically created in the application's default database directory.
 
