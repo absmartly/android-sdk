@@ -38,6 +38,10 @@ import com.absmartly.sdk.json.Exposure;
 import com.absmartly.sdk.json.PublishEvent;
 import com.absmartly.sdk.json.Unit;
 
+// Ported from absmartly/java-sdk v1.9.0 core-api/src/test/java/com/absmartly/sdk/ContextHoldoutTest.java
+// (JUnit 4 instead of 5, java8.util futures for core-api-java6), run against the core-api-java6 jar
+// the SDK depends on. Re-port it from the matching java-sdk tag whenever that dependency is bumped.
+//
 // A holdout arrives as an ordinary experiment entry (in ContextData.holdouts, not .experiments) so
 // its variant semantics are: variant 0 = held out (no experimentation at all), variant 1 = exposed.
 // A covered experiment declares its coverage explicitly via holdoutIds, an array of holdout ids

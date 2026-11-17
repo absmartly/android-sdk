@@ -386,7 +386,7 @@ A holdout keeps a share of units out of a group of experiments, to measure their
 
 - A unit that a holdout holds out of an experiment gets variant `0` from `getTreatment()` and the control variant's values from `getVariableValue()`, and the experiment queues no exposure of its own. Audience, traffic, full-on and custom assignments are not applied to it.
 - A unit that is not held out is assigned normally.
-- Either way, the first exposing call (`getTreatment()` or `getVariableValue()`) on a covered experiment also queues one exposure for each of its holdouts, with the holdout's id and name and the arm the unit is in. The `peek` methods queue nothing.
+- Either way, an exposing call (`getTreatment()` or `getVariableValue()`) on a covered experiment also queues an exposure for each of its holdouts, with the holdout's id and name and the arm the unit is in. Each holdout is exposed once per context and unit type, however many experiments it covers, and again only after a refresh changes the holdout's iteration. The `peek` methods queue nothing.
 - An experiment covered by several holdouts is held out if any of them holds the unit out.
 - A two-arm holdout holds units in arm 0 out of every experiment it covers. A three-arm holdout also holds units in arm 1 out of the experiments that are not full-on. The number of arms comes from the holdout's split.
 - `setOverride()` and a matching assignment rule both take precedence over a holdout; the holdout's exposure is still queued.
