@@ -137,8 +137,8 @@ public class HoldoutsTest {
         context.close();
     }
 
-    // Two covered experiments: holdout_a holds UID out of the first, holdout_b (3 arms) does not
-    // hold it out of the second. One uncovered experiment. Every holdout object, the holdouts array
+    // Two covered experiments: holdout_a holds UID out of the first, holdout_b does not hold it out of
+    // the second. One uncovered experiment. Every holdout object, the holdouts array
     // and the root carry unknown scalar, object and array keys, and an unknown holdoutType.
     private static String forwardCompatiblePayload() {
         return "{" + UNKNOWN + ",\"experiments\":["
@@ -179,6 +179,60 @@ public class HoldoutsTest {
         assertExposure(exposures.get(1), 2, "exp_covered_b", 1, true);
         assertExposure(exposures.get(2), 12, "holdout_b", 1, true);
         assertExposure(exposures.get(3), 3, "exp_uncovered", 1, true);
+        context.close();
+    }
+
+    private static String holdout(int id, String name, int seedHi, int seedLo, String split, String extra) {
+        return "{\"id\":" + id + ",\"name\":\"" + name + "\",\"iteration\":1,\"unitType\":\"session_id\","
+                + "\"seedHi\":" + seedHi + ",\"seedLo\":" + seedLo + ",\"split\":" + split + extra + "}";
+    }
+
+    // The arm count comes from the length of split, never from holdoutType. For UID, a 0.3/0.3/0.4
+    // split with seeds 0/3 gives arm 1, which holds out a non-full-on experiment; holdout_b's
+    // 0.1/0.9 split gives arm 1 of 2, which holds nothing out whatever holdoutType says.
+    @Test
+    public void holdoutArityComesFromSplit() throws IOException {
+        final com.absmartly.sdk.Context context = fetch(UID, "{\"experiments\":["
+                + experiment(1, "exp_three_arm_no_type", "[21]") + ","
+                + experiment(2, "exp_three_arm_full_type", "[22]") + ","
+                + experiment(3, "exp_two_arm_all_full_on_type", "[23]")
+                + "],\"holdouts\":["
+                + holdout(21, "holdout_three_arm_no_type", 0, 3, "[0.3,0.3,0.4]", "") + ","
+                + holdout(22, "holdout_three_arm_full_type", 0, 3, "[0.3,0.3,0.4]", ",\"holdoutType\":\"full\"") + ","
+                + holdout(23, "holdout_two_arm_all_full_on_type", 1, 222, "[0.1,0.9]",
+                        ",\"holdoutType\":\"all_full_on\"")
+                + "]}");
+        assertEquals(0, context.getTreatment("exp_three_arm_no_type"));
+        assertEquals(0, context.getTreatment("exp_three_arm_full_type"));
+        assertEquals(1, context.getTreatment("exp_two_arm_all_full_on_type"));
+        context.publish();
+
+        final List<JsonNode> exposures = publishedExposures();
+        assertEquals(exposures.toString(), 4, exposures.size());
+        assertExposure(exposures.get(0), 21, "holdout_three_arm_no_type", 1, true);
+        assertExposure(exposures.get(1), 22, "holdout_three_arm_full_type", 1, true);
+        assertExposure(exposures.get(2), 3, "exp_two_arm_all_full_on_type", 1, true);
+        assertExposure(exposures.get(3), 23, "holdout_two_arm_all_full_on_type", 1, true);
+        context.close();
+    }
+
+    // An experiment's holdouts fire in id order, whatever the order of holdoutIds and holdouts.
+    @Test
+    public void holdoutExposuresFireInIdOrder() throws IOException {
+        final com.absmartly.sdk.Context context = fetch(UID_NOT_HELD_OUT, "{\"experiments\":["
+                + experiment(1, "exp_two_holdouts", "[12,11]")
+                + "],\"holdouts\":["
+                + holdout(12, "holdout_b", 1, 222, "[0.1,0.9]", "") + ","
+                + holdout(11, "holdout_a", 13, 111, "[0.1,0.9]", "")
+                + "]}");
+        assertEquals(1, context.getTreatment("exp_two_holdouts"));
+        context.publish();
+
+        final List<JsonNode> exposures = publishedExposures();
+        assertEquals(exposures.toString(), 3, exposures.size());
+        assertExposure(exposures.get(0), 1, "exp_two_holdouts", 1, true);
+        assertExposure(exposures.get(1), 11, "holdout_a", 1, true);
+        assertExposure(exposures.get(2), 12, "holdout_b", 1, true);
         context.close();
     }
 
