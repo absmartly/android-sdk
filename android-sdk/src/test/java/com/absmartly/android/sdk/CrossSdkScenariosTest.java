@@ -34,9 +34,9 @@ import static org.junit.Assert.fail;
 
 /**
  * Replays the cross-SDK assignment-rule, semver, audience re-evaluation, system-attribute and
- * X-Agent scenarios (230-253 and 300-323 of absmartly/cross-sdk-tests, recorded from the
- * JavaScript SDK) against ABSmartlyAndroid. The fixture is a pinned copy; CI checks it against the
- * upstream file at the recorded commit.
+ * X-Agent scenarios (230-253 and 300-323 of absmartly/cross-sdk-tests) and the holdout scenarios
+ * (203-227), recorded from the JavaScript SDK, against ABSmartlyAndroid. The fixtures are pinned
+ * copies; CI checks each against the upstream file at its recorded commit.
  *
  * The scenarios expect an exposure event from each step that queues one. Here the exposures are
  * collected in order and compared with what the context actually publishes at the end, which also
@@ -44,7 +44,10 @@ import static org.junit.Assert.fail;
  */
 @RunWith(ParameterizedRobolectricTestRunner.class)
 public class CrossSdkScenariosTest {
-    private static final String RESOURCE = "cross-sdk/assignment_rules_semver_scenarios.json";
+    private static final String[] RESOURCES = {
+            "cross-sdk/assignment_rules_semver_scenarios.json",
+            "cross-sdk/holdout_scenarios.json",
+    };
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     // Default client names for scenarios without a "client" object, as in the JavaScript wrapper.
@@ -65,8 +68,10 @@ public class CrossSdkScenariosTest {
     @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")
     public static Collection<Object[]> scenarios() throws IOException {
         final List<Object[]> result = new ArrayList<>();
-        for (final JsonNode scenario : loadResource().get("scenarios")) {
-            result.add(new Object[]{scenario.get("name").asText(), scenario});
+        for (final String resource : RESOURCES) {
+            for (final JsonNode scenario : loadResource(resource).get("scenarios")) {
+                result.add(new Object[]{scenario.get("name").asText(), scenario});
+            }
         }
         return result;
     }
@@ -81,10 +86,10 @@ public class CrossSdkScenariosTest {
         return null;
     }
 
-    private static JsonNode loadResource() throws IOException {
-        try (InputStream in = CrossSdkScenariosTest.class.getClassLoader().getResourceAsStream(RESOURCE)) {
+    private static JsonNode loadResource(String resource) throws IOException {
+        try (InputStream in = CrossSdkScenariosTest.class.getClassLoader().getResourceAsStream(resource)) {
             if (in == null) {
-                throw new IOException("missing test resource " + RESOURCE);
+                throw new IOException("missing test resource " + resource);
             }
             return MAPPER.readTree(in);
         }
@@ -167,7 +172,8 @@ public class CrossSdkScenariosTest {
                 assertTrue(where, context.isReady());
                 assertCreateResult(where, expect.get("result"));
                 for (final JsonNode event : expect.get("events")) {
-                    if ("ready".equals(event.get("type").asText())) {
+                    // A ready event without data (scenarios 214-222) only counts.
+                    if ("ready".equals(event.get("type").asText()) && event.has("data")) {
                         assertReadyExperiments(where, event.get("data").get("experiments"));
                     }
                 }
@@ -183,6 +189,10 @@ public class CrossSdkScenariosTest {
                 break;
             case "variableValue":
                 result = context.getVariableValue(params.get("key").asText(),
+                        MAPPER.treeToValue(params.get("defaultValue"), Object.class));
+                break;
+            case "peekVariableValue":
+                result = context.peekVariableValue(params.get("key").asText(),
                         MAPPER.treeToValue(params.get("defaultValue"), Object.class));
                 break;
             case "pending":
