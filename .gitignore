@@ -1,0 +1,14 @@
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+.DS_Store
+
+.claude/
+AUDIT_REPORT.md
+FIXES_IMPLEMENTED.md
+
+# Python bytecode caches
+__pycache__/
+*.pyc
