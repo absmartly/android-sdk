@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -24,6 +25,7 @@ import java8.util.function.Function;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mockito;
 
 import com.absmartly.sdk.internal.hashing.Hashing;
@@ -217,6 +219,12 @@ public class ContextHoldoutTest {
         return expected;
     }
 
+    // Exactly one publish for this context, whatever its payload, and that one is expected.
+    void verifyPublishedOnce(Context context, PublishEvent expected) {
+        verify(eventHandler, Mockito.times(1)).publish(eq(context), any());
+        verify(eventHandler).publish(context, expected);
+    }
+
     Exposure holdoutExposure(int id, String name, int variant) {
         return holdoutExposure(UNIT_TYPE, id, name, variant);
     }
@@ -282,7 +290,7 @@ public class ContextHoldoutTest {
         context.publish();
 
         final PublishEvent expected = publishedEvent(UID, holdoutExposure(11, "holdout_a", 0));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // A non-held-out unit emits the holdout exposure with variant=1 plus its own normal
@@ -301,7 +309,7 @@ public class ContextHoldoutTest {
                 new Exposure(1, "exp_holdout_out", UNIT_TYPE, 0, clock.millis(), true, true, false, false, false,
                         false),
                 holdoutExposure(11, "holdout_a", 1));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // An experiment without holdoutIds is not covered by any holdout, even one that suppresses a
@@ -325,7 +333,7 @@ public class ContextHoldoutTest {
                 holdoutExposure(11, "holdout_a", 0),
                 new Exposure(2, "exp_not_covered", UNIT_TYPE, NORMAL_VARIANT, clock.millis(), true, true, false,
                         false, false, false));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // A normal experiment covered by two holdouts is suppressed if the unit is held out by
@@ -346,7 +354,7 @@ public class ContextHoldoutTest {
         final PublishEvent expected = publishedEvent(UID,
                 holdoutExposure(11, "holdout_a", 0),
                 holdoutExposure(12, "holdout_b", 1));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // The union rule is never proven if the deciding (held-out) holdout always sits at index 0 -
@@ -372,7 +380,7 @@ public class ContextHoldoutTest {
         final PublishEvent expected = publishedEvent(UID,
                 holdoutExposure(11, "holdout_low_id", 1),
                 holdoutExposure(12, "holdout_high_id", 0));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     @Test
@@ -393,7 +401,7 @@ public class ContextHoldoutTest {
                         false, false),
                 holdoutExposure(11, "holdout_a", 1),
                 holdoutExposure(12, "holdout_b", 1));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // A holdout suppresses a full-on experiment exactly as it does a traffic-eligible one -
@@ -427,7 +435,7 @@ public class ContextHoldoutTest {
         context.publish();
 
         final PublishEvent expected = publishedEvent(UID, holdoutExposure(21, "holdout_three_arm", 0));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // Arm 1 (full-on only) is the heart of the feature: a non-full-on experiment is forced to
@@ -455,7 +463,7 @@ public class ContextHoldoutTest {
                 holdoutExposure(21, "holdout_three_arm", 1),
                 new Exposure(2, "exp_three_arm_1_fullon", UNIT_TYPE, 2, clock.millis(), true, true, false, true,
                         false, false));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // Arm 2 (normal traffic) evaluates every in-scope experiment completely normally, full-on or
@@ -482,7 +490,7 @@ public class ContextHoldoutTest {
                 holdoutExposure(21, "holdout_three_arm", 2),
                 new Exposure(2, "exp_three_arm_2_fullon", UNIT_TYPE, 2, clock.millis(), true, true, false, true,
                         false, false));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // Union: a 2-arm holdout that holds the unit out wins even when an applicable 3-arm holdout's
@@ -505,7 +513,7 @@ public class ContextHoldoutTest {
         final PublishEvent expected = publishedEvent(UID,
                 holdoutExposure(11, "holdout_two_arm", 0),
                 holdoutExposure(22, "holdout_three_arm", 2));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // Union, the other direction: a 3-arm holdout's arm 1 holds a non-full-on experiment out even
@@ -528,7 +536,7 @@ public class ContextHoldoutTest {
         final PublishEvent expected = publishedEvent(UID,
                 holdoutExposure(11, "holdout_two_arm", 1),
                 holdoutExposure(22, "holdout_three_arm", 1));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // Arm 1 must defer to the normal assignment path for a full-on experiment rather than
@@ -571,14 +579,14 @@ public class ContextHoldoutTest {
                         false, false, true),
                 holdoutExposure(21, "holdout_three_arm", 1));
         expectedArm1.attributes = new Attribute[]{new Attribute("age", 5, clock.millis())};
-        verify(eventHandler, Mockito.times(1)).publish(contextArm1, expectedArm1);
+        verifyPublishedOnce(contextArm1, expectedArm1);
 
         final PublishEvent expectedArm2 = publishedEvent(UID,
                 new Exposure(1, "exp_three_arm_2_audience_fullon", UNIT_TYPE, 0, clock.millis(), false, true, false,
                         false, false, true),
                 holdoutExposure(21, "holdout_three_arm", 2));
         expectedArm2.attributes = new Attribute[]{new Attribute("age", 5, clock.millis())};
-        verify(eventHandler, Mockito.times(1)).publish(contextArm2, expectedArm2);
+        verifyPublishedOnce(contextArm2, expectedArm2);
     }
 
     // The unit type an experiment/holdout uses need not have any unit configured on this context
@@ -606,7 +614,7 @@ public class ContextHoldoutTest {
 
         final PublishEvent expected = publishedEvent(UID, new Exposure(1, "exp_user_holdout", "user_id", 0,
                 clock.millis(), false, true, false, false, false, false));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // An absent holdouts key (null, the ContextData default) leaves behaviour identical to
@@ -692,7 +700,7 @@ public class ContextHoldoutTest {
                 new Exposure(1, "exp_holdout_override_held_out", UNIT_TYPE, 3, clock.millis(), false, true, true,
                         false, false, false),
                 holdoutExposure(11, "holdout_a", 0));
-        verify(eventHandler, Mockito.times(1)).publish(heldOutContext, expectedHeldOut);
+        verifyPublishedOnce(heldOutContext, expectedHeldOut);
 
         final Experiment notHeldOutExperiment = coveredBy(newExperiment(1, "exp_holdout_override_not_held_out"), 11);
         final ContextConfig notHeldOutConfig = ContextConfig.create().setUnit(UNIT_TYPE, UID_NOT_HELD_OUT)
@@ -709,7 +717,7 @@ public class ContextHoldoutTest {
                 new Exposure(1, "exp_holdout_override_not_held_out", UNIT_TYPE, 3, clock.millis(), false, true, true,
                         false, false, false),
                 holdoutExposure(11, "holdout_a", 1));
-        verify(eventHandler, Mockito.times(1)).publish(notHeldOutContext, expectedNotHeldOut);
+        verifyPublishedOnce(notHeldOutContext, expectedNotHeldOut);
     }
 
     @Test
@@ -744,7 +752,7 @@ public class ContextHoldoutTest {
         context.publish();
 
         final PublishEvent expected = publishedEvent(UID, holdoutExposure(11, "holdout_a", 0));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     @Test
@@ -766,7 +774,7 @@ public class ContextHoldoutTest {
                 new Exposure(1, "exp_shared_a", UNIT_TYPE, 0, clock.millis(), true, true, false, false, false, false),
                 holdoutExposure(11, "holdout_a", 1),
                 new Exposure(2, "exp_shared_b", UNIT_TYPE, 0, clock.millis(), true, true, false, false, false, false));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // Refresh with an unchanged holdout definition must not re-trigger the holdout's exposure or
@@ -952,7 +960,7 @@ public class ContextHoldoutTest {
         // no new exposure at all: both experiments remain suppressed under the pinned arm, and
         // the holdout's own exposure was already recorded before the refresh.
         final PublishEvent expected = publishedEvent(UID, holdoutExposure(11, "holdout_a", 0));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // --- Arm-count pinning across a same-iteration arity change -----------------------------
@@ -1002,7 +1010,7 @@ public class ContextHoldoutTest {
                 holdoutExposure(31, "holdout_arity", 1),
                 new Exposure(2, "exp_arity_2to3_b", UNIT_TYPE, NORMAL_VARIANT, clock.millis(), true, true, false,
                         false, false, false));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // The reverse direction: a unit pinned at arm 1 under a 3-arm holdout holds a non-full-on
@@ -1044,7 +1052,7 @@ public class ContextHoldoutTest {
         // neither covered experiment ever emits its own exposure; the holdout's own exposure
         // fired once, before the refresh.
         final PublishEvent expected = publishedEvent(UID, holdoutExposure(41, "holdout_arity_rev", 1));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // Within one context, an experiment evaluated before a same-iteration arity change and one
@@ -1119,7 +1127,15 @@ public class ContextHoldoutTest {
                 new Exposure(1, "exp_epoch_race", UNIT_TYPE, NORMAL_VARIANT, clock.millis(), true, true, false,
                         false, false, false),
                 holdoutExposure(11, "holdout_h", 1)); // iteration1's arm, not iteration2's
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
+
+        // the refresh really landed between E's exposure and the holdout's.
+        final InOrder order = Mockito.inOrder(eventLogger);
+        order.verify(eventLogger).handleEvent(eq(context), eq(ContextEventLogger.EventType.Exposure),
+                argThat(data -> (data instanceof Exposure) && (((Exposure) data).id == 1)));
+        order.verify(eventLogger).handleEvent(eq(context), eq(ContextEventLogger.EventType.Refresh), any());
+        order.verify(eventLogger).handleEvent(eq(context), eq(ContextEventLogger.EventType.Exposure),
+                argThat(data -> (data instanceof Exposure) && (((Exposure) data).id == 11)));
     }
 
     // Reproduces the null-snapshot regression: a ready context with no unit installed peeks a
@@ -1157,7 +1173,7 @@ public class ContextHoldoutTest {
                 new Exposure(1, "exp_null_snapshot_fullon", coveredUnitType, 2, clock.millis(), true, true, false,
                         true, false, false),
                 holdoutExposure(coveredUnitType, 11, "holdout_user_id", 1));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // Selectivity for Defect 2 (High): eviction must not discard an already-exposed assignment.
@@ -1290,7 +1306,7 @@ public class ContextHoldoutTest {
 
         final PublishEvent expected = publishedEvent(coveredUnitType, UID,
                 holdoutExposure(coveredUnitType, 11, "holdout_user_id_suppress", 0));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     @Test
@@ -1313,7 +1329,7 @@ public class ContextHoldoutTest {
 
         when(eventHandler.publish(any(), any())).thenReturn(CompletableFuture.completedFuture(null));
         context.publish();
-        verify(eventHandler, Mockito.times(1)).publish(context,
+        verifyPublishedOnce(context,
                 publishedEvent(unitType, UID, holdoutExposure(unitType, 11, "holdout_detached_suppressed", 0)));
     }
 
@@ -1337,7 +1353,7 @@ public class ContextHoldoutTest {
 
         when(eventHandler.publish(any(), any())).thenReturn(CompletableFuture.completedFuture(null));
         context.publish();
-        verify(eventHandler, Mockito.times(1)).publish(context,
+        verifyPublishedOnce(context,
                 publishedEvent(unitType, UID,
                         new Exposure(1, experimentName, unitType, 2, clock.millis(), true, true, false, true, false,
                                 false),
@@ -1438,7 +1454,7 @@ public class ContextHoldoutTest {
 
         when(eventHandler.publish(any(), any())).thenReturn(CompletableFuture.completedFuture(null));
         context.publish();
-        verify(eventHandler, Mockito.times(1)).publish(context,
+        verifyPublishedOnce(context,
                 publishedEvent(unitType, UID,
                         holdoutExposure(unitType, 11, "holdout_detached_variable", 1),
                         new Exposure(1, winner.name, unitType, 1, clock.millis(), true, true, false, true, false,
@@ -1651,7 +1667,7 @@ public class ContextHoldoutTest {
                 new Exposure(1, "exp_redundant_set_unit", UNIT_TYPE, NORMAL_VARIANT, clock.millis(), true, true, false,
                         false, false, false),
                 holdoutExposure(11, "holdout_a", 1));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // Task 3: peekVariableValue populates the same cache as getAssignment/getTreatment, and
@@ -1688,7 +1704,7 @@ public class ContextHoldoutTest {
 
         final PublishEvent expected = publishedEvent(coveredUnitType, UID,
                 holdoutExposure(coveredUnitType, 11, "holdout_var_late", 0));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // Task 4a: overrides never take a holdoutAssignments snapshot (the override branch in
@@ -1724,7 +1740,7 @@ public class ContextHoldoutTest {
                 new Exposure(1, "exp_override_late_unit", coveredUnitType, 3, clock.millis(), false, true, true,
                         false, false, false),
                 holdoutExposure(coveredUnitType, 11, "holdout_override_late", 1));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // Task 4b: a custom assignment takes the ordinary snapshot path (getAssignment's non-override
@@ -1760,7 +1776,7 @@ public class ContextHoldoutTest {
                 new Exposure(1, "exp_custom_late_unit", coveredUnitType, 3, clock.millis(), true, true, false, false,
                         true, false),
                 holdoutExposure(coveredUnitType, 11, "holdout_custom_late", 1));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // --- Cross-SDK parity vectors -----------------------------------------------------------
@@ -1799,8 +1815,8 @@ public class ContextHoldoutTest {
         when(eventHandler.publish(any(), any())).thenReturn(CompletableFuture.completedFuture(null));
         context.publish();
 
-        verify(eventHandler, Mockito.times(1)).publish(org.mockito.ArgumentMatchers.eq(context),
-                org.mockito.ArgumentMatchers.argThat(event -> (event.exposures.length == 1)
+        verify(eventHandler, Mockito.times(1)).publish(eq(context), any());
+        verify(eventHandler).publish(eq(context), argThat(event -> (event.exposures.length == 1)
                         && (event.exposures[0].id == holdoutId) && event.exposures[0].name.equals(holdoutName)
                         && (event.exposures[0].variant == 0)));
     }
@@ -1810,9 +1826,13 @@ public class ContextHoldoutTest {
         when(eventHandler.publish(any(), any())).thenReturn(CompletableFuture.completedFuture(null));
         context.publish();
 
-        verify(eventHandler, Mockito.times(1)).publish(org.mockito.ArgumentMatchers.eq(context),
-                org.mockito.ArgumentMatchers.argThat(event -> java.util.Arrays.stream(event.exposures)
-                        .anyMatch(e -> (e.id == holdoutId) && e.name.equals(holdoutName) && (e.variant == 1))));
+        final ArgumentCaptor<PublishEvent> captor = ArgumentCaptor.forClass(PublishEvent.class);
+        verify(eventHandler, Mockito.times(1)).publish(eq(context), captor.capture());
+        final Exposure[] holdoutExposures = java.util.Arrays.stream(captor.getValue().exposures)
+                .filter(e -> e.id == holdoutId).toArray(Exposure[]::new);
+        assertEquals(1, holdoutExposures.length);
+        assertEquals(holdoutName, holdoutExposures[0].name);
+        assertEquals(1, holdoutExposures[0].variant);
     }
 
     @Test
@@ -1871,7 +1891,7 @@ public class ContextHoldoutTest {
         final PublishEvent expected = publishedEvent(VERDICT_UNIT_TYPE, "dual_holdout_unit_5",
                 holdoutExposure(VERDICT_UNIT_TYPE, 107, "holdout_107", 0),
                 holdoutExposure(VERDICT_UNIT_TYPE, 108, "holdout_108", 0));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // --- `assigned` and holdout-exposure symmetry ---------------------------------------------
@@ -1931,7 +1951,7 @@ public class ContextHoldoutTest {
                 holdoutExposure(11, "holdout_a", 0),
                 new Exposure(2, "exp_var_key_assigned", UNIT_TYPE, NORMAL_VARIANT, clock.millis(), true, true, false,
                         false, false, false));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // The peek path must stay side-effect free: resolving a variable key via peekVariableValue
@@ -1989,7 +2009,7 @@ public class ContextHoldoutTest {
 
         when(eventHandler.publish(any(), any())).thenReturn(CompletableFuture.completedFuture(null));
         context.publish();
-        verify(eventHandler, Mockito.times(1)).publish(context,
+        verifyPublishedOnce(context,
                 publishedEvent(UID,
                         new Exposure(1, experiment.name, UNIT_TYPE, NORMAL_VARIANT, clock.millis(), true, true, false,
                                 false, false, false),
@@ -2036,7 +2056,7 @@ public class ContextHoldoutTest {
         final PublishEvent expected = publishedEvent(UID,
                 new Exposure(1, "exp_null_holdout_entry", UNIT_TYPE, NORMAL_VARIANT, clock.millis(), true, true,
                         false, false, false, false));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     @Test
@@ -2056,7 +2076,7 @@ public class ContextHoldoutTest {
         final PublishEvent expected = publishedEvent(UID,
                 new Exposure(1, "exp_null_split_holdout", UNIT_TYPE, NORMAL_VARIANT, clock.millis(), true, true,
                         false, false, false, false));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     @Test
@@ -2076,7 +2096,7 @@ public class ContextHoldoutTest {
         final PublishEvent expected = publishedEvent(UID,
                 new Exposure(1, "exp_empty_split_holdout", UNIT_TYPE, NORMAL_VARIANT, clock.millis(), true, true,
                         false, false, false, false));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // --- Holdout cache/publish invariants under concurrent refresh and overrides ------------
@@ -2147,7 +2167,7 @@ public class ContextHoldoutTest {
                 new Exposure(2, "exp_g", UNIT_TYPE, NORMAL_VARIANT, clock.millis(), true, true, false, false, false,
                         false),
                 holdoutExposure(11, "holdout_h", 1));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // The override fast path must revalidate applicable-holdout coverage exactly like the
@@ -2188,7 +2208,7 @@ public class ContextHoldoutTest {
                 false, true, true, false, false, false);
         final PublishEvent expected = publishedEvent(UID, ownExposure, ownExposure,
                 holdoutExposure(11, "holdout_late", 0));
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     // getVariableValue resolves via the variable-key path, which fires candidate holdout
@@ -2270,7 +2290,7 @@ public class ContextHoldoutTest {
                         false, true),
                 holdoutExposure(11, "holdout_rules_suppression", 0));
         expected.attributes = new Attribute[]{new Attribute("country", "US", clock.millis())};
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     @Test
@@ -2345,7 +2365,7 @@ public class ContextHoldoutTest {
                 new Exposure(1, "exp_holdout_rules", UNIT_TYPE, 1, clock.millis(), false, true, false, false, false,
                         false, true));
         expected.attributes = new Attribute[]{new Attribute("country", "US", clock.millis())};
-        verify(eventHandler, Mockito.times(1)).publish(context, expected);
+        verifyPublishedOnce(context, expected);
     }
 
     @Test

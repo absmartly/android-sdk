@@ -3,6 +3,7 @@ package com.absmartly.android.sdk;
 import android.content.Context;
 
 import com.absmartly.sdk.ContextConfig;
+import com.absmartly.sdk.ContextEventLogger;
 import com.absmartly.sdk.DefaultContextDataDeserializer;
 import com.absmartly.sdk.json.ContextData;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -25,6 +26,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -102,6 +104,7 @@ public class CrossSdkScenariosTest {
     private com.absmartly.sdk.Context context;
     private final List<JsonNode> expectedExposures = new ArrayList<>();
     private int exposuresExpectedAtLastPublish;
+    private final List<String> loggedEvents = new ArrayList<>();
 
     public CrossSdkScenariosTest(String name, JsonNode scenario) {
         this.name = name;
@@ -153,6 +156,7 @@ public class CrossSdkScenariosTest {
         final JsonNode params = step.get("params");
         final JsonNode expect = step.get("expect");
         final String where = name + " step " + index + " (" + action + ")";
+        loggedEvents.clear();
 
         Object result = null;
         switch (action) {
@@ -172,6 +176,7 @@ public class CrossSdkScenariosTest {
                 }
                 assertTrue(where, context.isReady());
                 assertCreateResult(where, expect.get("result"));
+                assertLoggedEvents(where, expect);
                 for (final JsonNode event : expect.get("events")) {
                     // A ready event without data (scenarios 214-222) only counts.
                     if ("ready".equals(event.get("type").asText()) && event.has("data")) {
@@ -231,6 +236,7 @@ public class CrossSdkScenariosTest {
                 expectedExposures.add(event.has("data") ? event.get("data") : MAPPER.createObjectNode());
             }
         }
+        assertLoggedEvents(where, expect);
         if ("publish".equals(action)) {
             exposuresExpectedAtLastPublish = expectedExposures.size();
         }
@@ -238,6 +244,16 @@ public class CrossSdkScenariosTest {
         // getVariableValue) fails here instead of being hidden by later deduplication.
         assertEquals(where + ": pending exposures", expectedExposures.size() - exposuresExpectedAtLastPublish,
                 context.getPendingCount());
+    }
+
+    // The event types the context logged during this step, in order. Payloads are compared through
+    // the published exposures and the ready experiments.
+    private void assertLoggedEvents(String where, JsonNode expect) {
+        final List<String> expected = new ArrayList<>();
+        for (final JsonNode event : expect.get("events")) {
+            expected.add(event.get("type").asText());
+        }
+        assertEquals(where + ": events", expected, loggedEvents);
     }
 
     // The SDK rejects the client configuration, so no context is created. The cross-SDK wrappers
@@ -267,8 +283,13 @@ public class CrossSdkScenariosTest {
         }
     }
 
-    private static ContextConfig contextConfig(JsonNode params) {
-        final ContextConfig config = ContextConfig.create();
+    private ContextConfig contextConfig(JsonNode params) {
+        final ContextConfig config = ContextConfig.create().setEventLogger(new ContextEventLogger() {
+            @Override
+            public void handleEvent(com.absmartly.sdk.Context context, EventType event, Object data) {
+                loggedEvents.add(event.name().toLowerCase(Locale.ROOT));
+            }
+        });
         final Iterator<Map.Entry<String, JsonNode>> units = params.get("units").fields();
         while (units.hasNext()) {
             final Map.Entry<String, JsonNode> unit = units.next();
