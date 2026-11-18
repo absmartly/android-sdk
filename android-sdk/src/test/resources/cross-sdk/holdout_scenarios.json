@@ -1,0 +1,5483 @@
+{
+ "source": "absmartly/cross-sdk-tests test_scenarios_complete.json, scenarios 203-227",
+ "commit": "2b8e927f90182a0e46e1cb5a680b34faa74a1865",
+ "scenarios": [
+  {
+   "name": "203 - Holdouts - Held-Out Unit Suppresses Covered Experiment",
+   "description": "A unit landing in a holdout's variant 0 gets control values for the experiment it covers (no exposure of its own) and exactly one ordinary exposure for the holdout itself.",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_holdout_held_out",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       11
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 11,
+      "name": "holdout_a",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutType": "full"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_holdout_held_out"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_holdout_held_out"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 11,
+         "name": "holdout_a",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "publish",
+     "params": {},
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "publish",
+        "data": {
+         "exposures": [
+          {
+           "id": 11,
+           "name": "holdout_a",
+           "variant": 0
+          }
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ],
+   "requires": [
+    "holdouts"
+   ]
+  },
+  {
+   "name": "204 - Holdouts - Not-Held-Out Unit Assigns Normally And Exposes Holdout",
+   "description": "A unit outside the holdout's suppressed arm assigns to the covered experiment exactly as it would without holdouts, plus one ordinary exposure for the holdout carrying its nonzero (not-held-out) variant.",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_holdout_not_held_out",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       11
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 11,
+      "name": "holdout_a",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutType": "full"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_holdout_not_held_out"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_holdout_not_held_out"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "exp_holdout_not_held_out",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       },
+       {
+        "type": "exposure",
+        "data": {
+         "id": 11,
+         "name": "holdout_a",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "publish",
+     "params": {},
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "publish",
+        "data": {
+         "exposures": [
+          {
+           "id": 1,
+           "name": "exp_holdout_not_held_out",
+           "variant": 0
+          },
+          {
+           "id": 11,
+           "name": "holdout_a",
+           "variant": 1
+          }
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ],
+   "requires": [
+    "holdouts"
+   ]
+  },
+  {
+   "name": "205 - Holdouts - Union Of Two Holdouts Suppresses Via Higher-Id Holdout",
+   "description": "An experiment covered by two holdouts is suppressed if the unit is held out by EITHER one (union semantics). Pinned so the low-id holdout does NOT hold the unit out and the high-id holdout does, ruling out an implementation that only ever consults holdouts[0]. Both holdouts still emit their own independent exposure.",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_holdout_union",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       11,
+       12
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 11,
+      "name": "holdout_low_id",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 1,
+      "seedLo": 222,
+      "split": [
+       0.1,
+       0.9
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutType": "full"
+     },
+     {
+      "id": 12,
+      "name": "holdout_high_id",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutType": "full"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_holdout_union"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_holdout_union"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 11,
+         "name": "holdout_low_id",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       },
+       {
+        "type": "exposure",
+        "data": {
+         "id": 12,
+         "name": "holdout_high_id",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "publish",
+     "params": {},
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "publish",
+        "data": {
+         "exposures": [
+          {
+           "id": 11,
+           "name": "holdout_low_id",
+           "variant": 1
+          },
+          {
+           "id": 12,
+           "name": "holdout_high_id",
+           "variant": 0
+          }
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ],
+   "requires": [
+    "holdouts"
+   ]
+  },
+  {
+   "name": "206 - Holdouts - Coverage Is Opt-In Per Experiment",
+   "description": "Holdout coverage never leaks to a sibling experiment lacking holdoutIds, even when that sibling shares the same unit and context as an experiment the same holdout suppresses.",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_holdout_covered",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       11
+      ]
+     },
+     {
+      "id": 2,
+      "name": "exp_holdout_uncovered_sibling",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 11,
+      "name": "holdout_a",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutType": "full"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_holdout_covered"
+          },
+          {
+           "id": 2,
+           "name": "exp_holdout_uncovered_sibling"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_holdout_covered"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 11,
+         "name": "holdout_a",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_holdout_uncovered_sibling"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 2,
+         "name": "exp_holdout_uncovered_sibling",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "publish",
+     "params": {},
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "publish",
+        "data": {
+         "exposures": [
+          {
+           "id": 11,
+           "name": "holdout_a",
+           "variant": 0
+          },
+          {
+           "id": 2,
+           "name": "exp_holdout_uncovered_sibling",
+           "variant": 1
+          }
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ],
+   "requires": [
+    "holdouts"
+   ]
+  },
+  {
+   "name": "207 - Holdouts - Dangling Holdout Id Ignored, Valid Coverage Still Applies",
+   "description": "A holdoutIds entry with no matching holdouts[] element is silently ignored - wire inconsistency tolerance, not an error - while a second, valid id in the same list still applies normally.",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_holdout_dangling_plus_valid",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       999,
+       11
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 11,
+      "name": "holdout_a",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutType": "full"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_holdout_dangling_plus_valid"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_holdout_dangling_plus_valid"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 11,
+         "name": "holdout_a",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "publish",
+     "params": {},
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "publish",
+        "data": {
+         "exposures": [
+          {
+           "id": 11,
+           "name": "holdout_a",
+           "variant": 0
+          }
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ],
+   "requires": [
+    "holdouts"
+   ]
+  },
+  {
+   "name": "208 - Holdouts - Suppresses Full-On Experiment Regardless Of Full-On Variant",
+   "description": "A holdout suppresses a full-on experiment (fullOnVariant != 0) exactly as it does a traffic-eligible one - explicit holdoutIds coverage, not full-on status, decides suppression.",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_holdout_fullon",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 2,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       },
+       {
+        "name": "C",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       11
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 11,
+      "name": "holdout_a",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutType": "full"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_holdout_fullon"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_holdout_fullon"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 11,
+         "name": "holdout_a",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "publish",
+     "params": {},
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "publish",
+        "data": {
+         "exposures": [
+          {
+           "id": 11,
+           "name": "holdout_a",
+           "variant": 0
+          }
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ],
+   "requires": [
+    "holdouts"
+   ]
+  },
+  {
+   "name": "209 - Holdouts - Old-Payload Tolerance For Uncovered Experiment",
+   "description": "INERTNESS BASELINE (must pass on every SDK, holdout-aware or not): holdouts[] is present in the payload but the experiment under test declares no holdoutIds, so behavior is identical whether or not the SDK understands the holdouts wire format at all. Contrasts with the other Holdouts scenarios in this group, which fail on any SDK that has not implemented holdout resolution.",
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_holdout_payload_tolerance",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 11,
+      "name": "holdout_a",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutType": "full"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_holdout_payload_tolerance"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_holdout_payload_tolerance"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "exp_holdout_payload_tolerance",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "publish",
+     "params": {},
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "publish",
+        "data": {
+         "exposures": [
+          {
+           "id": 1,
+           "name": "exp_holdout_payload_tolerance",
+           "variant": 1
+          }
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "210 - Holdout - Override Takes Precedence Over Holdout",
+   "description": "An explicit override wins over holdout membership for the experiment's own assignment; the override path still evaluates coverage, so the holdout's own exposure fires alongside it",
+   "requires": [
+    "holdouts"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_holdout_override",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 3603515,
+      "seedLo": 233373850,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 449867249,
+      "trafficSeedLo": 455443629,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       1
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 1,
+      "name": "holdout_override_precedence",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ]
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_holdout_override"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "override",
+     "params": {
+      "experimentName": "exp_holdout_override",
+      "variant": 1
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_holdout_override"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "exp_holdout_override",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": false,
+         "eligible": true,
+         "overridden": true,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       },
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "holdout_override_precedence",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "211 - Holdout - Holdout Takes Precedence Over Custom Assignment",
+   "description": "Holdout membership forces control and suppresses the experiment's own exposure even with a custom assignment on file; only the holdout's own exposure fires",
+   "requires": [
+    "holdouts"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_holdout_custom",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 3603515,
+      "seedLo": 233373850,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 449867249,
+      "trafficSeedLo": 455443629,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       1
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 1,
+      "name": "holdout_custom_precedence",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ]
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_holdout_custom"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "customAssignment",
+     "params": {
+      "experimentName": "exp_holdout_custom",
+      "variant": 1
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_holdout_custom"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "holdout_custom_precedence",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "212 - Holdout - Independent Holdouts Across Experiments",
+   "description": "Same unit is held out for one experiment's holdout but not another's, using independent seeds; the held-out experiment fires no exposure of its own while the non-held-out one does",
+   "requires": [
+    "holdouts"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_multi_holdout_a",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 3603515,
+      "seedLo": 233373850,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 449867249,
+      "trafficSeedLo": 455443629,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       1
+      ]
+     },
+     {
+      "id": 2,
+      "name": "exp_multi_holdout_b",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 3603515,
+      "seedLo": 233373850,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 449867249,
+      "trafficSeedLo": 455443629,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       2
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 1,
+      "name": "holdout_multi_a",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ]
+     },
+     {
+      "id": 2,
+      "name": "holdout_multi_b",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 1,
+      "seedLo": 222,
+      "split": [
+       0.1,
+       0.9
+      ]
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_multi_holdout_a"
+          },
+          {
+           "id": 2,
+           "name": "exp_multi_holdout_b"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_multi_holdout_a"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "holdout_multi_a",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_multi_holdout_b"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 2,
+         "name": "exp_multi_holdout_b",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       },
+       {
+        "type": "exposure",
+        "data": {
+         "id": 2,
+         "name": "holdout_multi_b",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "213 - Holdout - Consistent Membership Across Shared Holdout",
+   "description": "Same unit and same shared holdout definition produce consistent holdout membership across different experiments; the shared holdout's own exposure fires once on first evaluation and neither covered experiment fires its own exposure",
+   "requires": [
+    "holdouts"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_shared_a",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 3603515,
+      "seedLo": 233373850,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 449867249,
+      "trafficSeedLo": 455443629,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       1
+      ]
+     },
+     {
+      "id": 2,
+      "name": "exp_shared_b",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 3603515,
+      "seedLo": 233373850,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 449867249,
+      "trafficSeedLo": 455443629,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       1
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 1,
+      "name": "holdout_shared",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ]
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_shared_a"
+          },
+          {
+           "id": 2,
+           "name": "exp_shared_b"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_shared_a"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "holdout_shared",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_shared_b"
+     },
+     "expect": {
+      "result": 0,
+      "events": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "214 - Holdout Arms - Three-Arm Variant 0 Holds Out Full-On And Non-Full-On (uid e791e240fcd3df7d238cfc285f475e8152fcc0ec)",
+   "description": "A 3-arm holdout's variant 0 forces control for every covered experiment, full-on or not, identically to a 2-arm holdout's variant 0; the holdout's own exposure fires once at variant 0 and neither covered experiment emits its own exposure.",
+   "requires": [
+    "holdout_arms"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_three_arm_0_non_fullon",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0.0,
+       1.0
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       21
+      ]
+     },
+     {
+      "id": 2,
+      "name": "exp_three_arm_0_fullon",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0.0,
+       1.0
+      ],
+      "fullOnVariant": 2,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       },
+       {
+        "name": "C",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       21
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 21,
+      "name": "holdout_three_arm_v0",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 1,
+      "split": [
+       0.3,
+       0.3,
+       0.4
+      ],
+      "holdoutType": "all_full_on"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready"
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_three_arm_0_non_fullon"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 21,
+         "name": "holdout_three_arm_v0",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_three_arm_0_fullon"
+     },
+     "expect": {
+      "result": 0,
+      "events": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "215 - Holdout Arms - Three-Arm Variant 1 Holds Out Non-Full-On, Assigns Full-On Normally (uid e791e240fcd3df7d238cfc285f475e8152fcc0ec)",
+   "description": "A 3-arm holdout's variant 1 forces control only for a covered experiment with fullOnVariant==0; a covered full-on experiment (fullOnVariant!=0) takes its normal assignment path and is assigned its own fullOnVariant with fullOn=true, not suppressed.",
+   "requires": [
+    "holdout_arms"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_three_arm_1_non_fullon",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0.0,
+       1.0
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       22
+      ]
+     },
+     {
+      "id": 2,
+      "name": "exp_three_arm_1_fullon",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0.0,
+       1.0
+      ],
+      "fullOnVariant": 2,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       },
+       {
+        "name": "C",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       22
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 22,
+      "name": "holdout_three_arm_v1",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 3,
+      "split": [
+       0.3,
+       0.3,
+       0.4
+      ],
+      "holdoutType": "all_full_on"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready"
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_three_arm_1_non_fullon"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 22,
+         "name": "holdout_three_arm_v1",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_three_arm_1_fullon"
+     },
+     "expect": {
+      "result": 2,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 2,
+         "name": "exp_three_arm_1_fullon",
+         "unit": "session_id",
+         "variant": 2,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": true,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "216 - Holdout Arms - Three-Arm Variant 2 Evaluates Both Experiments Normally (uid e791e240fcd3df7d238cfc285f475e8152fcc0ec)",
+   "description": "A 3-arm holdout's variant 2 (normal traffic) evaluates every covered experiment exactly as if uncovered, full-on or not; the holdout's own exposure fires once at variant 2.",
+   "requires": [
+    "holdout_arms"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_three_arm_2_non_fullon",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0.0,
+       1.0
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       23
+      ]
+     },
+     {
+      "id": 2,
+      "name": "exp_three_arm_2_fullon",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0.0,
+       1.0
+      ],
+      "fullOnVariant": 2,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       },
+       {
+        "name": "C",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       23
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 23,
+      "name": "holdout_three_arm_v2",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.3,
+       0.3,
+       0.4
+      ],
+      "holdoutType": "all_full_on"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready"
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_three_arm_2_non_fullon"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "exp_three_arm_2_non_fullon",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       },
+       {
+        "type": "exposure",
+        "data": {
+         "id": 23,
+         "name": "holdout_three_arm_v2",
+         "unit": "session_id",
+         "variant": 2,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_three_arm_2_fullon"
+     },
+     "expect": {
+      "result": 2,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 2,
+         "name": "exp_three_arm_2_fullon",
+         "unit": "session_id",
+         "variant": 2,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": true,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "217 - Holdout Arms - Three-Arm Variant 1 Defers To Normal Path For Audience Mismatch (uid e791e240fcd3df7d238cfc285f475e8152fcc0ec)",
+   "description": "A full-on experiment covered by a 3-arm holdout's variant 1 is not short-circuited to its fullOnVariant: audienceStrict is evaluated first, so an audience mismatch still forces control (not suppression) with assigned=false and audienceMismatch=true; the experiment's own exposure fires because it was evaluated and rejected by audience, not held out.",
+   "requires": [
+    "holdout_arms"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_three_arm_1_audience_fullon",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0.0,
+       1.0
+      ],
+      "fullOnVariant": 2,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       },
+       {
+        "name": "C",
+        "config": null
+       }
+      ],
+      "audience": "{\"filter\":[{\"gte\":[{\"var\":\"age\"},{\"value\":20}]}]}",
+      "audienceStrict": true,
+      "customFieldValues": null,
+      "holdoutIds": [
+       24
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 24,
+      "name": "holdout_three_arm_v1",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 3,
+      "split": [
+       0.3,
+       0.3,
+       0.4
+      ],
+      "holdoutType": "all_full_on"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready"
+       }
+      ]
+     }
+    },
+    {
+     "action": "attribute",
+     "params": {
+      "name": "age",
+      "value": 5
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_three_arm_1_audience_fullon"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "exp_three_arm_1_audience_fullon",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": false,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": true
+        }
+       },
+       {
+        "type": "exposure",
+        "data": {
+         "id": 24,
+         "name": "holdout_three_arm_v1",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "218 - Holdout Arms - Three-Arm Variant 2 Audience Mismatch Matches Variant 1 Verdict (uid e791e240fcd3df7d238cfc285f475e8152fcc0ec)",
+   "description": "The same full-on/audience-mismatch experiment, covered instead by the 3-arm holdout's variant 2 (normal traffic), yields the identical verdict as scenario 217's variant 1: control, assigned=false, audienceMismatch=true. This pins that arm 1 defers to the normal assignment path instead of short-circuiting to the full-on variant.",
+   "requires": [
+    "holdout_arms"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_three_arm_2_audience_fullon",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0.0,
+       1.0
+      ],
+      "fullOnVariant": 2,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       },
+       {
+        "name": "C",
+        "config": null
+       }
+      ],
+      "audience": "{\"filter\":[{\"gte\":[{\"var\":\"age\"},{\"value\":20}]}]}",
+      "audienceStrict": true,
+      "customFieldValues": null,
+      "holdoutIds": [
+       25
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 25,
+      "name": "holdout_three_arm_v2",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.3,
+       0.3,
+       0.4
+      ],
+      "holdoutType": "all_full_on"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready"
+       }
+      ]
+     }
+    },
+    {
+     "action": "attribute",
+     "params": {
+      "name": "age",
+      "value": 5
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_three_arm_2_audience_fullon"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "exp_three_arm_2_audience_fullon",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": false,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": true
+        }
+       },
+       {
+        "type": "exposure",
+        "data": {
+         "id": 25,
+         "name": "holdout_three_arm_v2",
+         "unit": "session_id",
+         "variant": 2,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "219 - Holdout Arms - Union Two-Arm Holds Out While Applicable Three-Arm Does Not (uid e791e240fcd3df7d238cfc285f475e8152fcc0ec)",
+   "description": "A covered experiment is suppressed if EITHER applicable holdout holds it out, even when a 3-arm holdout's own arm (variant 2, normal traffic) would not have held it out on its own; both holdouts still emit their own independent exposure with their own variant. A second experiment covered only by the non-suppressing 3-arm holdout takes its normal assignment path and emits its own exposure, proving that holdout 22's arm is not itself suppressing.",
+   "requires": [
+    "holdout_arms"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_union_two_arm_wins",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0.0,
+       1.0
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       11,
+       22
+      ]
+     },
+     {
+      "id": 2,
+      "name": "exp_only_three_arm_normal_path",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0.0,
+       1.0
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       22
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 11,
+      "name": "holdout_union_two_arm",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ]
+     },
+     {
+      "id": 22,
+      "name": "holdout_union_three_arm",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 0,
+      "split": [
+       0.3,
+       0.3,
+       0.4
+      ],
+      "holdoutType": "all_full_on"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready"
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_union_two_arm_wins"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 11,
+         "name": "holdout_union_two_arm",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       },
+       {
+        "type": "exposure",
+        "data": {
+         "id": 22,
+         "name": "holdout_union_three_arm",
+         "unit": "session_id",
+         "variant": 2,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_only_three_arm_normal_path"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 2,
+         "name": "exp_only_three_arm_normal_path",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "220 - Holdout Arms - Union Three-Arm Variant 1 Holds Out While Applicable Two-Arm Does Not (uid e791e240fcd3df7d238cfc285f475e8152fcc0ec)",
+   "description": "Union, the other direction: a 3-arm holdout's variant 1 holds a non-full-on covered experiment out even when an applicable 2-arm holdout alone would not have; both holdouts still emit their own independent exposure with their own variant. A second experiment covered only by the non-suppressing 2-arm holdout takes its normal assignment path and emits its own exposure, proving that holdout 11's arm is not itself suppressing.",
+   "requires": [
+    "holdout_arms"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_union_three_arm_wins",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0.0,
+       1.0
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       11,
+       22
+      ]
+     },
+     {
+      "id": 2,
+      "name": "exp_only_two_arm_normal_path",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0.0,
+       1.0
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       11
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 11,
+      "name": "holdout_union_two_arm",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 1,
+      "seedLo": 222,
+      "split": [
+       0.1,
+       0.9
+      ]
+     },
+     {
+      "id": 22,
+      "name": "holdout_union_three_arm",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 3,
+      "split": [
+       0.3,
+       0.3,
+       0.4
+      ],
+      "holdoutType": "all_full_on"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready"
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_union_three_arm_wins"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 11,
+         "name": "holdout_union_two_arm",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       },
+       {
+        "type": "exposure",
+        "data": {
+         "id": 22,
+         "name": "holdout_union_three_arm",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_only_two_arm_normal_path"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 2,
+         "name": "exp_only_two_arm_normal_path",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "221 - Holdouts - Late Unit Publishes Previously Unavailable Holdout Exposure",
+   "description": "A covered full-on experiment can resolve before its unit type is installed; after setUnit supplies that unit, resolving it again publishes the holdout exposure that was unavailable during the first evaluation.",
+   "requires": [
+    "holdouts"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_holdout_late_unit_fullon",
+      "iteration": 1,
+      "unitType": "user_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5,
+       0.0
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 2,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       },
+       {
+        "name": "C",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       11
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 11,
+      "name": "holdout_late_user_id",
+      "iteration": 1,
+      "unitType": "user_id",
+      "seedHi": 1,
+      "seedLo": 222,
+      "split": [
+       0.1,
+       0.9
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutType": "full"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContextWith",
+     "params": {
+      "units": {
+       "session_id": "context-created-without-user-id"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_holdout_late_unit_fullon"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "peek",
+     "params": {
+      "experimentName": "exp_holdout_late_unit_fullon"
+     },
+     "expect": {
+      "result": 2,
+      "events": []
+     }
+    },
+    {
+     "action": "setUnit",
+     "params": {
+      "unitType": "user_id",
+      "uid": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+     },
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_holdout_late_unit_fullon"
+     },
+     "expect": {
+      "result": 2,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "exp_holdout_late_unit_fullon",
+         "unit": "user_id",
+         "variant": 2,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": true,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       },
+       {
+        "type": "exposure",
+        "data": {
+         "id": 11,
+         "name": "holdout_late_user_id",
+         "unit": "user_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "publish",
+     "params": {},
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "publish",
+        "data": {
+         "exposures": [
+          {
+           "id": 1,
+           "name": "exp_holdout_late_unit_fullon",
+           "variant": 2
+          },
+          {
+           "id": 11,
+           "name": "holdout_late_user_id",
+           "variant": 1
+          }
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "222 - Holdout Arms - Three-Arm Arity Derived From Split Without holdoutType (uid e791e240fcd3df7d238cfc285f475e8152fcc0ec)",
+   "description": "Identical to the three-arm variant 0 scenario, but the holdout definition omits the holdoutType field entirely. An SDK must derive the holdout's arm count from its split length alone, so suppression of both the full-on and non-full-on covered experiments is unchanged. Pins that holdoutType is not required on the wire.",
+   "requires": [
+    "holdout_arms"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_three_arm_0_non_fullon",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0.0,
+       1.0
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       21
+      ]
+     },
+     {
+      "id": 2,
+      "name": "exp_three_arm_0_fullon",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 100,
+      "seedLo": 200,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 1,
+      "trafficSeedLo": 2,
+      "trafficSplit": [
+       0.0,
+       1.0
+      ],
+      "fullOnVariant": 2,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       },
+       {
+        "name": "C",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       21
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 21,
+      "name": "holdout_arity_from_split",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 0,
+      "seedLo": 1,
+      "split": [
+       0.3,
+       0.3,
+       0.4
+      ]
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready"
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_three_arm_0_non_fullon"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 21,
+         "name": "holdout_arity_from_split",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_three_arm_0_fullon"
+     },
+     "expect": {
+      "result": 0,
+      "events": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "223 - Holdouts - Exposure State Survives Publish",
+   "description": "Holdout and experiment exposures are once per context, not once per publish: after the queue is flushed, calling treatment again on the same experiment, or on another experiment covered by the same holdout, queues nothing. Covers both a held-out holdout (suppressed experiments) and a not-held-out one (normal experiment exposure plus holdout exposure).",
+   "requires": [
+    "holdouts"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_pub_held_a",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 3603515,
+      "seedLo": 233373850,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 449867249,
+      "trafficSeedLo": 455443629,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       1
+      ]
+     },
+     {
+      "id": 2,
+      "name": "exp_pub_held_b",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 3603515,
+      "seedLo": 233373850,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 449867249,
+      "trafficSeedLo": 455443629,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       1
+      ]
+     },
+     {
+      "id": 3,
+      "name": "exp_pub_not_held",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 3603515,
+      "seedLo": 233373850,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 449867249,
+      "trafficSeedLo": 455443629,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       2
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 1,
+      "name": "holdout_pub_held",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutType": "full"
+     },
+     {
+      "id": 2,
+      "name": "holdout_pub_not_held",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 1,
+      "seedLo": 222,
+      "split": [
+       0.1,
+       0.9
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutType": "full"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_pub_held_a"
+          },
+          {
+           "id": 2,
+           "name": "exp_pub_held_b"
+          },
+          {
+           "id": 3,
+           "name": "exp_pub_not_held"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_pub_held_a"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "holdout_pub_held",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_pub_not_held"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 3,
+         "name": "exp_pub_not_held",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       },
+       {
+        "type": "exposure",
+        "data": {
+         "id": 2,
+         "name": "holdout_pub_not_held",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "publish",
+     "params": {},
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "publish",
+        "data": {
+         "exposures": [
+          {
+           "id": 1,
+           "name": "holdout_pub_held",
+           "variant": 0
+          },
+          {
+           "id": 3,
+           "name": "exp_pub_not_held",
+           "variant": 1
+          },
+          {
+           "id": 2,
+           "name": "holdout_pub_not_held",
+           "variant": 1
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_pub_held_a"
+     },
+     "expect": {
+      "result": 0,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_pub_not_held"
+     },
+     "expect": {
+      "result": 1,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_pub_held_b"
+     },
+     "expect": {
+      "result": 0,
+      "events": []
+     }
+    },
+    {
+     "action": "pending",
+     "params": {},
+     "expect": {
+      "result": 0,
+      "events": []
+     }
+    },
+    {
+     "action": "publish",
+     "params": {},
+     "expect": {
+      "result": null,
+      "events": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "224 - Holdouts - Refresh Keeps Exposure Unless Holdout Iteration Changes",
+   "description": "A refresh with identical data keeps the holdout's exposure state, so neither the covered experiment nor a sibling covered by the same holdout re-exposes it. A refresh that bumps the holdout's iteration starts a new epoch: the next covered treatment publishes one new holdout exposure, and the sibling then shares it.",
+   "requires": [
+    "holdouts"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_refresh_held",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 3603515,
+      "seedLo": 233373850,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 449867249,
+      "trafficSeedLo": 455443629,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       1
+      ]
+     },
+     {
+      "id": 2,
+      "name": "exp_refresh_held_sibling",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 3603515,
+      "seedLo": 233373850,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 449867249,
+      "trafficSeedLo": 455443629,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       1
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 1,
+      "name": "holdout_refresh",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutType": "full"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_refresh_held"
+          },
+          {
+           "id": 2,
+           "name": "exp_refresh_held_sibling"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_refresh_held"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "holdout_refresh",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "refresh",
+     "params": {
+      "newData": {
+       "experiments": [
+        {
+         "id": 1,
+         "name": "exp_refresh_held",
+         "iteration": 1,
+         "unitType": "session_id",
+         "seedHi": 3603515,
+         "seedLo": 233373850,
+         "split": [
+          0.5,
+          0.5
+         ],
+         "trafficSeedHi": 449867249,
+         "trafficSeedLo": 455443629,
+         "trafficSplit": [
+          0,
+          1
+         ],
+         "fullOnVariant": 0,
+         "applications": [
+          {
+           "name": "website"
+          }
+         ],
+         "variants": [
+          {
+           "name": "A",
+           "config": null
+          },
+          {
+           "name": "B",
+           "config": null
+          }
+         ],
+         "audience": null,
+         "audienceStrict": false,
+         "customFieldValues": null,
+         "holdoutIds": [
+          1
+         ]
+        },
+        {
+         "id": 2,
+         "name": "exp_refresh_held_sibling",
+         "iteration": 1,
+         "unitType": "session_id",
+         "seedHi": 3603515,
+         "seedLo": 233373850,
+         "split": [
+          0.5,
+          0.5
+         ],
+         "trafficSeedHi": 449867249,
+         "trafficSeedLo": 455443629,
+         "trafficSplit": [
+          0,
+          1
+         ],
+         "fullOnVariant": 0,
+         "applications": [
+          {
+           "name": "website"
+          }
+         ],
+         "variants": [
+          {
+           "name": "A",
+           "config": null
+          },
+          {
+           "name": "B",
+           "config": null
+          }
+         ],
+         "audience": null,
+         "audienceStrict": false,
+         "customFieldValues": null,
+         "holdoutIds": [
+          1
+         ]
+        }
+       ],
+       "holdouts": [
+        {
+         "id": 1,
+         "name": "holdout_refresh",
+         "iteration": 1,
+         "unitType": "session_id",
+         "seedHi": 13,
+         "seedLo": 111,
+         "split": [
+          0.1,
+          0.9
+         ],
+         "trafficSeedHi": 0,
+         "trafficSeedLo": 0,
+         "trafficSplit": [
+          0,
+          1
+         ],
+         "fullOnVariant": 0,
+         "applications": [],
+         "variants": [
+          {
+           "name": "A",
+           "config": null
+          },
+          {
+           "name": "B",
+           "config": null
+          }
+         ],
+         "audience": null,
+         "audienceStrict": false,
+         "customFieldValues": null,
+         "holdoutType": "full"
+        }
+       ]
+      }
+     },
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "refresh",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_refresh_held"
+          },
+          {
+           "id": 2,
+           "name": "exp_refresh_held_sibling"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_refresh_held"
+     },
+     "expect": {
+      "result": 0,
+      "events": []
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_refresh_held_sibling"
+     },
+     "expect": {
+      "result": 0,
+      "events": []
+     }
+    },
+    {
+     "action": "refresh",
+     "params": {
+      "newData": {
+       "experiments": [
+        {
+         "id": 1,
+         "name": "exp_refresh_held",
+         "iteration": 1,
+         "unitType": "session_id",
+         "seedHi": 3603515,
+         "seedLo": 233373850,
+         "split": [
+          0.5,
+          0.5
+         ],
+         "trafficSeedHi": 449867249,
+         "trafficSeedLo": 455443629,
+         "trafficSplit": [
+          0,
+          1
+         ],
+         "fullOnVariant": 0,
+         "applications": [
+          {
+           "name": "website"
+          }
+         ],
+         "variants": [
+          {
+           "name": "A",
+           "config": null
+          },
+          {
+           "name": "B",
+           "config": null
+          }
+         ],
+         "audience": null,
+         "audienceStrict": false,
+         "customFieldValues": null,
+         "holdoutIds": [
+          1
+         ]
+        },
+        {
+         "id": 2,
+         "name": "exp_refresh_held_sibling",
+         "iteration": 1,
+         "unitType": "session_id",
+         "seedHi": 3603515,
+         "seedLo": 233373850,
+         "split": [
+          0.5,
+          0.5
+         ],
+         "trafficSeedHi": 449867249,
+         "trafficSeedLo": 455443629,
+         "trafficSplit": [
+          0,
+          1
+         ],
+         "fullOnVariant": 0,
+         "applications": [
+          {
+           "name": "website"
+          }
+         ],
+         "variants": [
+          {
+           "name": "A",
+           "config": null
+          },
+          {
+           "name": "B",
+           "config": null
+          }
+         ],
+         "audience": null,
+         "audienceStrict": false,
+         "customFieldValues": null,
+         "holdoutIds": [
+          1
+         ]
+        }
+       ],
+       "holdouts": [
+        {
+         "id": 1,
+         "name": "holdout_refresh",
+         "iteration": 2,
+         "unitType": "session_id",
+         "seedHi": 13,
+         "seedLo": 111,
+         "split": [
+          0.1,
+          0.9
+         ],
+         "trafficSeedHi": 0,
+         "trafficSeedLo": 0,
+         "trafficSplit": [
+          0,
+          1
+         ],
+         "fullOnVariant": 0,
+         "applications": [],
+         "variants": [
+          {
+           "name": "A",
+           "config": null
+          },
+          {
+           "name": "B",
+           "config": null
+          }
+         ],
+         "audience": null,
+         "audienceStrict": false,
+         "customFieldValues": null,
+         "holdoutType": "full"
+        }
+       ]
+      }
+     },
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "refresh",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_refresh_held"
+          },
+          {
+           "id": 2,
+           "name": "exp_refresh_held_sibling"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_refresh_held"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "holdout_refresh",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_refresh_held_sibling"
+     },
+     "expect": {
+      "result": 0,
+      "events": []
+     }
+    },
+    {
+     "action": "publish",
+     "params": {},
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "publish",
+        "data": {
+         "exposures": [
+          {
+           "id": 1,
+           "name": "holdout_refresh",
+           "variant": 0
+          },
+          {
+           "id": 1,
+           "name": "holdout_refresh",
+           "variant": 0
+          }
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "225 - Holdouts - Refresh Adding Or Removing Coverage Re-Resolves Experiment",
+   "description": "An experiment's holdout set is part of its assignment epoch. A refresh that adds a held-out holdout to holdoutIds re-resolves an already-exposed experiment: it is suppressed to control and the holdout exposure fires. A refresh that removes the coverage again restores its normal assignment with a fresh experiment exposure.",
+   "requires": [
+    "holdouts"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_coverage_change",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 3603515,
+      "seedLo": 233373850,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 449867249,
+      "trafficSeedLo": 455443629,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": []
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 1,
+      "name": "holdout_coverage_change",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutType": "full"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_coverage_change"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_coverage_change"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "exp_coverage_change",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "refresh",
+     "params": {
+      "newData": {
+       "experiments": [
+        {
+         "id": 1,
+         "name": "exp_coverage_change",
+         "iteration": 1,
+         "unitType": "session_id",
+         "seedHi": 3603515,
+         "seedLo": 233373850,
+         "split": [
+          0.5,
+          0.5
+         ],
+         "trafficSeedHi": 449867249,
+         "trafficSeedLo": 455443629,
+         "trafficSplit": [
+          0,
+          1
+         ],
+         "fullOnVariant": 0,
+         "applications": [
+          {
+           "name": "website"
+          }
+         ],
+         "variants": [
+          {
+           "name": "A",
+           "config": null
+          },
+          {
+           "name": "B",
+           "config": null
+          }
+         ],
+         "audience": null,
+         "audienceStrict": false,
+         "customFieldValues": null,
+         "holdoutIds": [
+          1
+         ]
+        }
+       ],
+       "holdouts": [
+        {
+         "id": 1,
+         "name": "holdout_coverage_change",
+         "iteration": 1,
+         "unitType": "session_id",
+         "seedHi": 13,
+         "seedLo": 111,
+         "split": [
+          0.1,
+          0.9
+         ],
+         "trafficSeedHi": 0,
+         "trafficSeedLo": 0,
+         "trafficSplit": [
+          0,
+          1
+         ],
+         "fullOnVariant": 0,
+         "applications": [],
+         "variants": [
+          {
+           "name": "A",
+           "config": null
+          },
+          {
+           "name": "B",
+           "config": null
+          }
+         ],
+         "audience": null,
+         "audienceStrict": false,
+         "customFieldValues": null,
+         "holdoutType": "full"
+        }
+       ]
+      }
+     },
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "refresh",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_coverage_change"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_coverage_change"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "holdout_coverage_change",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "refresh",
+     "params": {
+      "newData": {
+       "experiments": [
+        {
+         "id": 1,
+         "name": "exp_coverage_change",
+         "iteration": 1,
+         "unitType": "session_id",
+         "seedHi": 3603515,
+         "seedLo": 233373850,
+         "split": [
+          0.5,
+          0.5
+         ],
+         "trafficSeedHi": 449867249,
+         "trafficSeedLo": 455443629,
+         "trafficSplit": [
+          0,
+          1
+         ],
+         "fullOnVariant": 0,
+         "applications": [
+          {
+           "name": "website"
+          }
+         ],
+         "variants": [
+          {
+           "name": "A",
+           "config": null
+          },
+          {
+           "name": "B",
+           "config": null
+          }
+         ],
+         "audience": null,
+         "audienceStrict": false,
+         "customFieldValues": null,
+         "holdoutIds": []
+        }
+       ],
+       "holdouts": [
+        {
+         "id": 1,
+         "name": "holdout_coverage_change",
+         "iteration": 1,
+         "unitType": "session_id",
+         "seedHi": 13,
+         "seedLo": 111,
+         "split": [
+          0.1,
+          0.9
+         ],
+         "trafficSeedHi": 0,
+         "trafficSeedLo": 0,
+         "trafficSplit": [
+          0,
+          1
+         ],
+         "fullOnVariant": 0,
+         "applications": [],
+         "variants": [
+          {
+           "name": "A",
+           "config": null
+          },
+          {
+           "name": "B",
+           "config": null
+          }
+         ],
+         "audience": null,
+         "audienceStrict": false,
+         "customFieldValues": null,
+         "holdoutType": "full"
+        }
+       ]
+      }
+     },
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "refresh",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_coverage_change"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_coverage_change"
+     },
+     "expect": {
+      "result": 1,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "exp_coverage_change",
+         "unit": "session_id",
+         "variant": 1,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "226 - Holdouts - Variable Value Of Suppressed Experiment Returns Control",
+   "description": "For a held-out unit, variableValue on a covered experiment returns the control variant's value (not the caller's default and not the unit's would-be treatment value), peekVariableValue does the same without queuing anything, and the first variableValue fires only the holdout's exposure. A later treatment call on the same experiment queues nothing.",
+   "requires": [
+    "holdouts"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_holdout_variables",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 3603515,
+      "seedLo": 233373850,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 449867249,
+      "trafficSeedLo": 455443629,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": "{\"banner_color\":\"control_red\"}"
+       },
+       {
+        "name": "B",
+        "config": "{\"banner_color\":\"treatment_green\"}"
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       1
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 1,
+      "name": "holdout_variables",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutType": "full"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_holdout_variables"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "peekVariableValue",
+     "params": {
+      "key": "banner_color",
+      "defaultValue": "caller_default"
+     },
+     "expect": {
+      "result": "control_red",
+      "events": []
+     }
+    },
+    {
+     "action": "variableValue",
+     "params": {
+      "key": "banner_color",
+      "defaultValue": "caller_default"
+     },
+     "expect": {
+      "result": "control_red",
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "holdout_variables",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_holdout_variables"
+     },
+     "expect": {
+      "result": 0,
+      "events": []
+     }
+    },
+    {
+     "action": "publish",
+     "params": {},
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "publish",
+        "data": {
+         "exposures": [
+          {
+           "id": 1,
+           "name": "holdout_variables",
+           "variant": 0
+          }
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "227 - Holdouts - Holdout Resolves Per Covered Experiment Unit Type",
+   "description": "A holdout is evaluated with the covered experiment's unitType, not the holdout's own declared unitType (matching the java-sdk reference implementation). One holdout covering experiments of two unit types therefore yields one exposure per unit type, each carrying that unit; a second experiment of an already-exposed unit type would not re-expose it.",
+   "requires": [
+    "holdouts"
+   ],
+   "contextData": {
+    "experiments": [
+     {
+      "id": 1,
+      "name": "exp_unit_session",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 3603515,
+      "seedLo": 233373850,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 449867249,
+      "trafficSeedLo": 455443629,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       1
+      ]
+     },
+     {
+      "id": 2,
+      "name": "exp_unit_user",
+      "iteration": 1,
+      "unitType": "user_id",
+      "seedHi": 3603515,
+      "seedLo": 233373850,
+      "split": [
+       0.5,
+       0.5
+      ],
+      "trafficSeedHi": 449867249,
+      "trafficSeedLo": 455443629,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [
+       {
+        "name": "website"
+       }
+      ],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutIds": [
+       1
+      ]
+     }
+    ],
+    "holdouts": [
+     {
+      "id": 1,
+      "name": "holdout_cross_unit",
+      "iteration": 1,
+      "unitType": "session_id",
+      "seedHi": 13,
+      "seedLo": 111,
+      "split": [
+       0.1,
+       0.9
+      ],
+      "trafficSeedHi": 0,
+      "trafficSeedLo": 0,
+      "trafficSplit": [
+       0,
+       1
+      ],
+      "fullOnVariant": 0,
+      "applications": [],
+      "variants": [
+       {
+        "name": "A",
+        "config": null
+       },
+       {
+        "name": "B",
+        "config": null
+       }
+      ],
+      "audience": null,
+      "audienceStrict": false,
+      "customFieldValues": null,
+      "holdoutType": "full"
+     }
+    ]
+   },
+   "steps": [
+    {
+     "action": "createContext",
+     "params": {
+      "units": {
+       "session_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec",
+       "user_id": "e791e240fcd3df7d238cfc285f475e8152fcc0ec"
+      },
+      "options": {
+       "publishDelay": -1,
+       "refreshPeriod": 0
+      }
+     },
+     "expect": {
+      "result": {
+       "ready": true,
+       "failed": false,
+       "finalized": false
+      },
+      "events": [
+       {
+        "type": "ready",
+        "data": {
+         "experiments": [
+          {
+           "id": 1,
+           "name": "exp_unit_session"
+          },
+          {
+           "id": 2,
+           "name": "exp_unit_user"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_unit_session"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "holdout_cross_unit",
+         "unit": "session_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_unit_user"
+     },
+     "expect": {
+      "result": 0,
+      "events": [
+       {
+        "type": "exposure",
+        "data": {
+         "id": 1,
+         "name": "holdout_cross_unit",
+         "unit": "user_id",
+         "variant": 0,
+         "assigned": true,
+         "eligible": true,
+         "overridden": false,
+         "fullOn": false,
+         "custom": false,
+         "audienceMismatch": false
+        }
+       }
+      ]
+     }
+    },
+    {
+     "action": "treatment",
+     "params": {
+      "experimentName": "exp_unit_session"
+     },
+     "expect": {
+      "result": 0,
+      "events": []
+     }
+    },
+    {
+     "action": "publish",
+     "params": {},
+     "expect": {
+      "result": null,
+      "events": [
+       {
+        "type": "publish",
+        "data": {
+         "exposures": [
+          {
+           "id": 1,
+           "name": "holdout_cross_unit",
+           "variant": 0
+          },
+          {
+           "id": 1,
+           "name": "holdout_cross_unit",
+           "variant": 0
+          }
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ]
+}

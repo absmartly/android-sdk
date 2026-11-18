@@ -380,6 +380,25 @@ context.setAttribute("country", "US");
 final int treatment = context.getTreatment("exp_test_experiment"); // the matching rule's variant
 ```
 
+### Holdouts
+
+A holdout keeps a share of units out of a group of experiments, to measure their combined effect. Holdouts are configured in the Web Console and arrive with the context data; the SDK needs no configuration and has no holdout-specific methods.
+
+- A unit that a holdout holds out of an experiment gets variant `0` from `getTreatment()` and the control variant's values from `getVariableValue()`, and the experiment queues no exposure of its own. Audience, traffic, full-on and custom assignments are not applied to it.
+- A unit that is not held out is assigned normally.
+- Either way, an exposing call (`getTreatment()` or `getVariableValue()`) on a covered experiment also queues an exposure for each of its holdouts, with the holdout's id and name and the arm the unit is in. Each holdout is exposed once per context and unit type, however many experiments it covers, and again only after a refresh changes the holdout's iteration. The `peek` methods queue nothing.
+- An experiment covered by several holdouts is held out if any of them holds the unit out.
+- A two-arm holdout holds units in arm 0 out of every experiment it covers. A three-arm holdout also holds units in arm 1 out of the experiments that are not full-on. The number of arms comes from the holdout's split.
+- `setOverride()` and a matching assignment rule both take precedence over a holdout; the holdout's exposure is still queued.
+- A holdout is resolved with the covered experiment's unit type, so set that unit on the context.
+
+```java
+// exp_checkout is covered by a holdout that holds this unit out.
+context.getTreatment("exp_checkout");                       // 0, the control variant
+context.getVariableValue("button.color", "blue");           // the control variant's value
+context.publish();                                          // one exposure: the holdout's
+```
+
 ### Semver Operators
 
 Audience filters and rule conditions can compare versions with `semver_eq`, `semver_gt`, `semver_gte`, `semver_lt` and `semver_lte`, for example `app_version >= 2.4.0`. A leading `v` and build metadata are ignored, missing parts count as `0` (`1.2` equals `1.2.0`), and a pre-release ranks below its release (`2.4.0-beta.1 < 2.4.0`).
@@ -752,7 +771,7 @@ public class MainActivity extends AppCompatActivity {
 
 ## Cross-SDK Scenarios
 
-`CrossSdkScenariosTest` replays the assignment-rule, semver and audience re-evaluation scenarios (230-247) from [cross-sdk-tests](https://github.com/absmartly/cross-sdk-tests), recorded from the JavaScript SDK, against `ABSmartlyAndroid`. The scenario file is vendored in `android-sdk/src/test/resources/cross-sdk/` together with the cross-sdk-tests commit it was copied from.
+`CrossSdkScenariosTest` replays the holdout scenarios (203-227) and the assignment-rule, semver, audience re-evaluation, system-attribute and X-Agent scenarios (230-253 and 300-323) from [cross-sdk-tests](https://github.com/absmartly/cross-sdk-tests), recorded from the JavaScript SDK, against `ABSmartlyAndroid`. The scenario files are vendored in `android-sdk/src/test/resources/cross-sdk/`, each with the cross-sdk-tests commit it was copied from, and CI checks them against that commit (`.github/scripts/check_cross_sdk_scenarios.py`).
 
 ## Android-Specific Components
 
