@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
@@ -104,7 +105,7 @@ public class CrossSdkScenariosTest {
     private com.absmartly.sdk.Context context;
     private final List<JsonNode> expectedExposures = new ArrayList<>();
     private int exposuresExpectedAtLastPublish;
-    private final List<String> loggedEvents = new ArrayList<>();
+    private final List<String> loggedEvents = new CopyOnWriteArrayList<>();
 
     public CrossSdkScenariosTest(String name, JsonNode scenario) {
         this.name = name;
@@ -140,7 +141,7 @@ public class CrossSdkScenariosTest {
     }
 
     @Test
-    public void scenario() throws IOException {
+    public void scenario() throws IOException, InterruptedException {
         final String unsupported = unsupportedReason(scenario);
         Assume.assumeTrue(name + ": " + unsupported, unsupported == null);
 
@@ -151,7 +152,7 @@ public class CrossSdkScenariosTest {
         assertPublishedExposures();
     }
 
-    private void runStep(int index, JsonNode step) throws IOException {
+    private void runStep(int index, JsonNode step) throws IOException, InterruptedException {
         final String action = step.get("action").asText();
         final JsonNode params = step.get("params");
         final JsonNode expect = step.get("expect");
@@ -247,13 +248,18 @@ public class CrossSdkScenariosTest {
     }
 
     // The event types the context logged during this step, in order. Payloads are compared through
-    // the published exposures and the ready experiments.
-    private void assertLoggedEvents(String where, JsonNode expect) {
+    // the published exposures and the ready experiments. Core logs ready and refresh on the HTTP
+    // thread after completing the future the step waited on, so those can arrive a little later.
+    private void assertLoggedEvents(String where, JsonNode expect) throws InterruptedException {
         final List<String> expected = new ArrayList<>();
         for (final JsonNode event : expect.get("events")) {
             expected.add(event.get("type").asText());
         }
-        assertEquals(where + ": events", expected, loggedEvents);
+        final long deadline = System.currentTimeMillis() + 5000;
+        while (loggedEvents.size() < expected.size() && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
+        }
+        assertEquals(where + ": events", expected, new ArrayList<>(loggedEvents));
     }
 
     // The SDK rejects the client configuration, so no context is created. The cross-SDK wrappers
