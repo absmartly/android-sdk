@@ -347,7 +347,6 @@ public class CrossSdkScenariosTest {
         }
         assertEquals(where, names, actual);
 
-        // The Ready callback's own payload, not only the context state it produced.
         final List<String> logged = new ArrayList<>();
         for (final Experiment experiment : readyData.experiments) {
             logged.add(experiment.name);

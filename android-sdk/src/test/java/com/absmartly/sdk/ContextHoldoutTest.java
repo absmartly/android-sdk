@@ -219,7 +219,6 @@ public class ContextHoldoutTest {
         return expected;
     }
 
-    // Exactly one publish for this context, whatever its payload, and that one is expected.
     void verifyPublishedOnce(Context context, PublishEvent expected) {
         verify(eventHandler, Mockito.times(1)).publish(eq(context), any());
         verify(eventHandler).publish(context, expected);
@@ -1135,7 +1134,6 @@ public class ContextHoldoutTest {
                 holdoutExposure(11, "holdout_h", 1)); // iteration1's arm, not iteration2's
         verifyPublishedOnce(context, expected);
 
-        // the refresh really landed between E's exposure and the holdout's.
         final InOrder order = Mockito.inOrder(eventLogger);
         order.verify(eventLogger).handleEvent(eq(context), eq(ContextEventLogger.EventType.Exposure),
                 argThat(data -> (data instanceof Exposure) && (((Exposure) data).id == 1)));
