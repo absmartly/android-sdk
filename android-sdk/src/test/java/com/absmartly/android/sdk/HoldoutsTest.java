@@ -137,9 +137,8 @@ public class HoldoutsTest {
         context.close();
     }
 
-    // Two covered experiments: holdout_a holds UID out of the first, holdout_b does not hold it out of
-    // the second. One uncovered experiment. Every holdout object, the holdouts array
-    // and the root carry unknown scalar, object and array keys, and an unknown holdoutType.
+    // Every holdout object, the holdouts array and the root carry unknown scalar, object and array
+    // keys, and an unknown holdoutType.
     private static String forwardCompatiblePayload() {
         return "{" + UNKNOWN + ",\"experiments\":["
                 + experiment(1, "exp_covered_a", "[11]") + ","
@@ -278,7 +277,6 @@ public class HoldoutsTest {
         assertEquals(expected, publishBody("", ""));
         assertEquals(expected, publishBody(",\"holdouts\":null", ",\"holdoutIds\":null"));
         assertEquals(expected, publishBody(",\"holdouts\":[]", ",\"holdoutIds\":[]"));
-        // A holdout no experiment references.
         assertEquals(expected, publishBody(",\"holdouts\":[{\"id\":11,\"name\":\"holdout_a\",\"iteration\":1,"
                 + "\"unitType\":\"session_id\",\"seedHi\":13,\"seedLo\":111,\"split\":[0.1,0.9]}]", ""));
         // A dangling id and a holdout without a split, both ignored.

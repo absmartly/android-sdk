@@ -14,7 +14,6 @@ import urllib.request
 DIRECTORY = "android-sdk/src/test/resources/cross-sdk/"
 URL = "https://api.github.com/repos/absmartly/cross-sdk-tests/contents/test_scenarios_complete.json?ref={commit}"
 
-# Vendored file -> the inclusive scenario number ranges it holds.
 FIXTURES = {
     "assignment_rules_semver_scenarios.json": ((230, 253), (300, 323)),
     "holdout_scenarios.json": ((203, 227),),
