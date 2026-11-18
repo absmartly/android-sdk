@@ -101,6 +101,7 @@ public class CrossSdkScenariosTest {
     private ABSmartlyAndroid sdk;
     private com.absmartly.sdk.Context context;
     private final List<JsonNode> expectedExposures = new ArrayList<>();
+    private int exposuresExpectedAtLastPublish;
 
     public CrossSdkScenariosTest(String name, JsonNode scenario) {
         this.name = name;
@@ -230,6 +231,13 @@ public class CrossSdkScenariosTest {
                 expectedExposures.add(event.has("data") ? event.get("data") : MAPPER.createObjectNode());
             }
         }
+        if ("publish".equals(action)) {
+            exposuresExpectedAtLastPublish = expectedExposures.size();
+        }
+        // Checked per step, so an exposure queued a step early (peekVariableValue exposing like
+        // getVariableValue) fails here instead of being hidden by later deduplication.
+        assertEquals(where + ": pending exposures", expectedExposures.size() - exposuresExpectedAtLastPublish,
+                context.getPendingCount());
     }
 
     // The SDK rejects the client configuration, so no context is created. The cross-SDK wrappers
