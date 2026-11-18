@@ -73,10 +73,16 @@ def check(name):
     return True
 
 
+USAGE = "usage: %s [--update <fixture> <commit>], <fixture> one of: %s"
+
+
 def main(argv):
-    if len(argv) == 4 and argv[1] == "--update":
+    if len(argv) == 4 and argv[1] == "--update" and argv[2] in FIXTURES:
         update(argv[2], argv[3])
         return 0
+    if len(argv) != 1:
+        print(USAGE % (argv[0], ", ".join(FIXTURES)), file=sys.stderr)
+        return 2
     results = [check(name) for name in FIXTURES]
     return 0 if all(results) else 1
 

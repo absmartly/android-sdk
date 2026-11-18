@@ -28,7 +28,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
@@ -105,7 +107,7 @@ public class CrossSdkScenariosTest {
     private com.absmartly.sdk.Context context;
     private final List<JsonNode> expectedExposures = new ArrayList<>();
     private int exposuresExpectedAtLastPublish;
-    private final List<String> loggedEvents = new CopyOnWriteArrayList<>();
+    private final BlockingQueue<String> loggedEvents = new LinkedBlockingQueue<>();
 
     public CrossSdkScenariosTest(String name, JsonNode scenario) {
         this.name = name;
@@ -249,17 +251,24 @@ public class CrossSdkScenariosTest {
 
     // The event types the context logged during this step, in order. Payloads are compared through
     // the published exposures and the ready experiments. Core logs ready and refresh on the HTTP
-    // thread after completing the future the step waited on, so those can arrive a little later.
+    // thread after completing the future the step waited on, so each expected event may arrive a
+    // little later, and a late extra one is waited for briefly rather than left for the next step.
     private void assertLoggedEvents(String where, JsonNode expect) throws InterruptedException {
         final List<String> expected = new ArrayList<>();
+        final List<String> logged = new ArrayList<>();
         for (final JsonNode event : expect.get("events")) {
             expected.add(event.get("type").asText());
+            final String next = loggedEvents.poll(5, TimeUnit.SECONDS);
+            if (next != null) {
+                logged.add(next);
+            }
         }
-        final long deadline = System.currentTimeMillis() + 5000;
-        while (loggedEvents.size() < expected.size() && System.currentTimeMillis() < deadline) {
-            Thread.sleep(10);
+        final String extra = loggedEvents.poll(50, TimeUnit.MILLISECONDS);
+        if (extra != null) {
+            logged.add(extra);
+            loggedEvents.drainTo(logged);
         }
-        assertEquals(where + ": events", expected, new ArrayList<>(loggedEvents));
+        assertEquals(where + ": events", expected, logged);
     }
 
     // The SDK rejects the client configuration, so no context is created. The cross-SDK wrappers
