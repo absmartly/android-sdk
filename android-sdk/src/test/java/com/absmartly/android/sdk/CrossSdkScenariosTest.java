@@ -6,6 +6,7 @@ import com.absmartly.sdk.ContextConfig;
 import com.absmartly.sdk.ContextEventLogger;
 import com.absmartly.sdk.DefaultContextDataDeserializer;
 import com.absmartly.sdk.json.ContextData;
+import com.absmartly.sdk.json.Experiment;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
@@ -108,6 +109,7 @@ public class CrossSdkScenariosTest {
     private final List<JsonNode> expectedExposures = new ArrayList<>();
     private int exposuresExpectedAtLastPublish;
     private final BlockingQueue<String> loggedEvents = new LinkedBlockingQueue<>();
+    private volatile ContextData readyData;
 
     public CrossSdkScenariosTest(String name, JsonNode scenario) {
         this.name = name;
@@ -302,6 +304,9 @@ public class CrossSdkScenariosTest {
         final ContextConfig config = ContextConfig.create().setEventLogger(new ContextEventLogger() {
             @Override
             public void handleEvent(com.absmartly.sdk.Context context, EventType event, Object data) {
+                if (event == EventType.Ready) {
+                    readyData = (ContextData) data;
+                }
                 loggedEvents.add(event.name().toLowerCase(Locale.ROOT));
             }
         });
@@ -341,6 +346,13 @@ public class CrossSdkScenariosTest {
             actual.add(experiment);
         }
         assertEquals(where, names, actual);
+
+        // The Ready callback's own payload, not only the context state it produced.
+        final List<String> logged = new ArrayList<>();
+        for (final Experiment experiment : readyData.experiments) {
+            logged.add(experiment.name);
+        }
+        assertEquals(where + ": ready event data", names, logged);
     }
 
     private void assertPublishedExposures() throws IOException {

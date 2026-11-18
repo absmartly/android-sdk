@@ -1104,21 +1104,27 @@ public class ContextHoldoutTest {
         final Experiment holdoutIteration2 = newHoldout(11, "holdout_h", HOLDOUT_A_SEED_HI, HOLDOUT_A_SEED_LO);
         holdoutIteration2.iteration = 2;
         final Experiment refreshedExperiment = coveredBy(newExperiment(1, "exp_epoch_race"), 11);
-        when(dataProvider.getContextData()).thenReturn(CompletableFuture
-                .completedFuture(contextDataOf(new Experiment[]{holdoutIteration2}, refreshedExperiment)));
+        // first looked up only after the refresh, so it shows which iteration is live then.
+        final Experiment probe = coveredBy(newExperiment(2, "exp_epoch_race_probe"), 11);
+        final Experiment refreshedProbe = coveredBy(newExperiment(2, "exp_epoch_race_probe"), 11);
+        when(dataProvider.getContextData()).thenReturn(CompletableFuture.completedFuture(
+                contextDataOf(new Experiment[]{holdoutIteration2}, refreshedExperiment, refreshedProbe)));
 
         final Context context = createReadyContext(
-                contextDataOf(new Experiment[]{holdoutIteration1}, experiment));
+                contextDataOf(new Experiment[]{holdoutIteration1}, experiment, probe));
 
+        final AtomicInteger probeVariant = new AtomicInteger(-1);
         doAnswer(invocation -> {
             final Object data = invocation.getArgument(2);
             if ((data instanceof Exposure) && (((Exposure) data).id == 1)) {
                 context.refreshAsync().join();
+                probeVariant.set(context.peekTreatment("exp_epoch_race_probe"));
             }
             return null;
         }).when(eventLogger).handleEvent(any(), any(), any());
 
         assertEquals(NORMAL_VARIANT, context.getTreatment("exp_epoch_race")); // not suppressed under iteration1
+        assertEquals(0, probeVariant.get()); // iteration2 holds UID out of a fresh lookup
 
         when(eventHandler.publish(any(), any())).thenReturn(CompletableFuture.completedFuture(null));
         context.publish();

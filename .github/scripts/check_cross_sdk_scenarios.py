@@ -42,14 +42,20 @@ def upstream(commit, ranges):
 
 def update(name, commit):
     ranges = FIXTURES[name]
+    scenarios = upstream(commit, ranges)
+    if not scenarios:
+        print("%s: cross-sdk-tests@%s has no scenarios %s, fixture left unchanged"
+              % (name, commit, describe(ranges)), file=sys.stderr)
+        return False
     fixture = {
         "source": "absmartly/cross-sdk-tests test_scenarios_complete.json, scenarios " + describe(ranges),
         "commit": commit,
-        "scenarios": upstream(commit, ranges),
+        "scenarios": scenarios,
     }
     with open(DIRECTORY + name, "w", encoding="utf-8") as f:
         json.dump(fixture, f, indent=1, ensure_ascii=False)
         f.write("\n")
+    return True
 
 
 def check(name):
@@ -78,8 +84,7 @@ USAGE = "usage: %s [--update <fixture> <commit>], <fixture> one of: %s"
 
 def main(argv):
     if len(argv) == 4 and argv[1] == "--update" and argv[2] in FIXTURES:
-        update(argv[2], argv[3])
-        return 0
+        return 0 if update(argv[2], argv[3]) else 1
     if len(argv) != 1:
         print(USAGE % (argv[0], ", ".join(FIXTURES)), file=sys.stderr)
         return 2
