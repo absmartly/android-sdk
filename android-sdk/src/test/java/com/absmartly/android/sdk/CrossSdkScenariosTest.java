@@ -110,6 +110,7 @@ public class CrossSdkScenariosTest {
     private int exposuresExpectedAtLastPublish;
     private final BlockingQueue<String> loggedEvents = new LinkedBlockingQueue<>();
     private volatile ContextData readyData;
+    private volatile ContextData refreshData;
 
     public CrossSdkScenariosTest(String name, JsonNode scenario) {
         this.name = name;
@@ -181,7 +182,7 @@ public class CrossSdkScenariosTest {
                 }
                 assertTrue(where, context.isReady());
                 assertCreateResult(where, expect.get("result"));
-                assertLoggedEvents(where, expect);
+                assertLoggedEvents(where, action, expect);
                 for (final JsonNode event : expect.get("events")) {
                     // A ready event without data (scenarios 214-222) only counts.
                     if ("ready".equals(event.get("type").asText()) && event.has("data")) {
@@ -241,7 +242,13 @@ public class CrossSdkScenariosTest {
                 expectedExposures.add(event.has("data") ? event.get("data") : MAPPER.createObjectNode());
             }
         }
-        assertLoggedEvents(where, expect);
+        assertLoggedEvents(where, action, expect);
+        for (final JsonNode event : expect.get("events")) {
+            if ("refresh".equals(event.get("type").asText()) && event.has("data")) {
+                assertEventExperiments(where + ": refresh event data", event.get("data").get("experiments"),
+                        refreshData);
+            }
+        }
         if ("publish".equals(action)) {
             exposuresExpectedAtLastPublish = expectedExposures.size();
         }
@@ -254,8 +261,9 @@ public class CrossSdkScenariosTest {
     // The event types the context logged during this step, in order. Payloads are compared through
     // the published exposures and the ready experiments. Core logs ready and refresh on the HTTP
     // thread after completing the future the step waited on, so each expected event may arrive a
-    // little later, and a late extra one is waited for briefly rather than left for the next step.
-    private void assertLoggedEvents(String where, JsonNode expect) throws InterruptedException {
+    // little later, and on the steps that log off-thread a late extra one is waited for briefly
+    // rather than left for the next step.
+    private void assertLoggedEvents(String where, String action, JsonNode expect) throws InterruptedException {
         final List<String> expected = new ArrayList<>();
         final List<String> logged = new ArrayList<>();
         for (final JsonNode event : expect.get("events")) {
@@ -265,7 +273,9 @@ public class CrossSdkScenariosTest {
                 logged.add(next);
             }
         }
-        final String extra = loggedEvents.poll(50, TimeUnit.MILLISECONDS);
+        final boolean offThread = action.startsWith("createContext") || "refresh".equals(action)
+                || "publish".equals(action);
+        final String extra = offThread ? loggedEvents.poll(50, TimeUnit.MILLISECONDS) : loggedEvents.poll();
         if (extra != null) {
             logged.add(extra);
             loggedEvents.drainTo(logged);
@@ -306,6 +316,8 @@ public class CrossSdkScenariosTest {
             public void handleEvent(com.absmartly.sdk.Context context, EventType event, Object data) {
                 if (event == EventType.Ready) {
                     readyData = (ContextData) data;
+                } else if (event == EventType.Refresh) {
+                    refreshData = (ContextData) data;
                 }
                 loggedEvents.add(event.name().toLowerCase(Locale.ROOT));
             }
@@ -346,12 +358,19 @@ public class CrossSdkScenariosTest {
             actual.add(experiment);
         }
         assertEquals(where, names, actual);
+        assertEventExperiments(where + ": ready event data", expected, readyData);
+    }
 
+    private static void assertEventExperiments(String where, JsonNode expected, ContextData data) {
+        final List<String> names = new ArrayList<>();
+        for (final JsonNode experiment : expected) {
+            names.add(experiment.get("name").asText());
+        }
         final List<String> logged = new ArrayList<>();
-        for (final Experiment experiment : readyData.experiments) {
+        for (final Experiment experiment : data.experiments) {
             logged.add(experiment.name);
         }
-        assertEquals(where + ": ready event data", names, logged);
+        assertEquals(where, names, logged);
     }
 
     private void assertPublishedExposures() throws IOException {
