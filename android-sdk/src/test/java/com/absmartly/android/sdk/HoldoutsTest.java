@@ -137,8 +137,6 @@ public class HoldoutsTest {
         context.close();
     }
 
-    // Every holdout object, the holdouts array and the root carry unknown scalar, object and array
-    // keys, and an unknown holdoutType.
     private static String forwardCompatiblePayload() {
         return "{" + UNKNOWN + ",\"experiments\":["
                 + experiment(1, "exp_covered_a", "[11]") + ","
