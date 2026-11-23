@@ -3,8 +3,10 @@ package com.absmartly.android.sdk;
 import android.content.Context;
 
 import com.absmartly.sdk.ContextConfig;
+import com.absmartly.sdk.ContextEventLogger;
 import com.absmartly.sdk.DefaultContextDataDeserializer;
 import com.absmartly.sdk.json.ContextData;
+import com.absmartly.sdk.json.Experiment;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
@@ -25,7 +27,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
@@ -34,9 +40,9 @@ import static org.junit.Assert.fail;
 
 /**
  * Replays the cross-SDK assignment-rule, semver, audience re-evaluation, system-attribute and
- * X-Agent scenarios (230-253 and 300-323 of absmartly/cross-sdk-tests, recorded from the
- * JavaScript SDK) against ABSmartlyAndroid. The fixture is a pinned copy; CI checks it against the
- * upstream file at the recorded commit.
+ * X-Agent scenarios (230-253 and 300-323 of absmartly/cross-sdk-tests) and the holdout scenarios
+ * (203-227), recorded from the JavaScript SDK, against ABSmartlyAndroid. The fixtures are pinned
+ * copies; CI checks each against the upstream file at its recorded commit.
  *
  * The scenarios expect an exposure event from each step that queues one. Here the exposures are
  * collected in order and compared with what the context actually publishes at the end, which also
@@ -44,7 +50,10 @@ import static org.junit.Assert.fail;
  */
 @RunWith(ParameterizedRobolectricTestRunner.class)
 public class CrossSdkScenariosTest {
-    private static final String RESOURCE = "cross-sdk/assignment_rules_semver_scenarios.json";
+    private static final String[] RESOURCES = {
+            "cross-sdk/assignment_rules_semver_scenarios.json",
+            "cross-sdk/holdout_scenarios.json",
+    };
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     // Default client names for scenarios without a "client" object, as in the JavaScript wrapper.
@@ -65,8 +74,10 @@ public class CrossSdkScenariosTest {
     @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")
     public static Collection<Object[]> scenarios() throws IOException {
         final List<Object[]> result = new ArrayList<>();
-        for (final JsonNode scenario : loadResource().get("scenarios")) {
-            result.add(new Object[]{scenario.get("name").asText(), scenario});
+        for (final String resource : RESOURCES) {
+            for (final JsonNode scenario : loadResource(resource).get("scenarios")) {
+                result.add(new Object[]{scenario.get("name").asText(), scenario});
+            }
         }
         return result;
     }
@@ -81,10 +92,10 @@ public class CrossSdkScenariosTest {
         return null;
     }
 
-    private static JsonNode loadResource() throws IOException {
-        try (InputStream in = CrossSdkScenariosTest.class.getClassLoader().getResourceAsStream(RESOURCE)) {
+    private static JsonNode loadResource(String resource) throws IOException {
+        try (InputStream in = CrossSdkScenariosTest.class.getClassLoader().getResourceAsStream(resource)) {
             if (in == null) {
-                throw new IOException("missing test resource " + RESOURCE);
+                throw new IOException("missing test resource " + resource);
             }
             return MAPPER.readTree(in);
         }
@@ -96,6 +107,10 @@ public class CrossSdkScenariosTest {
     private ABSmartlyAndroid sdk;
     private com.absmartly.sdk.Context context;
     private final List<JsonNode> expectedExposures = new ArrayList<>();
+    private int exposuresExpectedAtLastPublish;
+    private final BlockingQueue<String> loggedEvents = new LinkedBlockingQueue<>();
+    private volatile ContextData readyData;
+    private volatile ContextData refreshData;
 
     public CrossSdkScenariosTest(String name, JsonNode scenario) {
         this.name = name;
@@ -131,7 +146,7 @@ public class CrossSdkScenariosTest {
     }
 
     @Test
-    public void scenario() throws IOException {
+    public void scenario() throws IOException, InterruptedException {
         final String unsupported = unsupportedReason(scenario);
         Assume.assumeTrue(name + ": " + unsupported, unsupported == null);
 
@@ -142,11 +157,12 @@ public class CrossSdkScenariosTest {
         assertPublishedExposures();
     }
 
-    private void runStep(int index, JsonNode step) throws IOException {
+    private void runStep(int index, JsonNode step) throws IOException, InterruptedException {
         final String action = step.get("action").asText();
         final JsonNode params = step.get("params");
         final JsonNode expect = step.get("expect");
         final String where = name + " step " + index + " (" + action + ")";
+        loggedEvents.clear();
 
         Object result = null;
         switch (action) {
@@ -166,8 +182,10 @@ public class CrossSdkScenariosTest {
                 }
                 assertTrue(where, context.isReady());
                 assertCreateResult(where, expect.get("result"));
+                assertLoggedEvents(where, action, expect);
                 for (final JsonNode event : expect.get("events")) {
-                    if ("ready".equals(event.get("type").asText())) {
+                    // A ready event without data (scenarios 214-222) only counts.
+                    if ("ready".equals(event.get("type").asText()) && event.has("data")) {
                         assertReadyExperiments(where, event.get("data").get("experiments"));
                     }
                 }
@@ -183,6 +201,10 @@ public class CrossSdkScenariosTest {
                 break;
             case "variableValue":
                 result = context.getVariableValue(params.get("key").asText(),
+                        MAPPER.treeToValue(params.get("defaultValue"), Object.class));
+                break;
+            case "peekVariableValue":
+                result = context.peekVariableValue(params.get("key").asText(),
                         MAPPER.treeToValue(params.get("defaultValue"), Object.class));
                 break;
             case "pending":
@@ -220,6 +242,45 @@ public class CrossSdkScenariosTest {
                 expectedExposures.add(event.has("data") ? event.get("data") : MAPPER.createObjectNode());
             }
         }
+        assertLoggedEvents(where, action, expect);
+        for (final JsonNode event : expect.get("events")) {
+            if ("refresh".equals(event.get("type").asText()) && event.has("data")) {
+                assertEventExperiments(where + ": refresh event data", event.get("data").get("experiments"),
+                        refreshData);
+            }
+        }
+        if ("publish".equals(action)) {
+            exposuresExpectedAtLastPublish = expectedExposures.size();
+        }
+        // Checked per step, so an exposure queued a step early (peekVariableValue exposing like
+        // getVariableValue) fails here instead of being hidden by later deduplication.
+        assertEquals(where + ": pending exposures", expectedExposures.size() - exposuresExpectedAtLastPublish,
+                context.getPendingCount());
+    }
+
+    // The event types the context logged during this step, in order. Payloads are compared through
+    // the published exposures and the ready experiments. Core logs ready and refresh on the HTTP
+    // thread after completing the future the step waited on, so each expected event may arrive a
+    // little later, and on the steps that log off-thread a late extra one is waited for briefly
+    // rather than left for the next step.
+    private void assertLoggedEvents(String where, String action, JsonNode expect) throws InterruptedException {
+        final List<String> expected = new ArrayList<>();
+        final List<String> logged = new ArrayList<>();
+        for (final JsonNode event : expect.get("events")) {
+            expected.add(event.get("type").asText());
+            final String next = loggedEvents.poll(5, TimeUnit.SECONDS);
+            if (next != null) {
+                logged.add(next);
+            }
+        }
+        final boolean offThread = action.startsWith("createContext") || "refresh".equals(action)
+                || "publish".equals(action);
+        final String extra = offThread ? loggedEvents.poll(50, TimeUnit.MILLISECONDS) : loggedEvents.poll();
+        if (extra != null) {
+            logged.add(extra);
+            loggedEvents.drainTo(logged);
+        }
+        assertEquals(where + ": events", expected, logged);
     }
 
     // The SDK rejects the client configuration, so no context is created. The cross-SDK wrappers
@@ -249,8 +310,18 @@ public class CrossSdkScenariosTest {
         }
     }
 
-    private static ContextConfig contextConfig(JsonNode params) {
-        final ContextConfig config = ContextConfig.create();
+    private ContextConfig contextConfig(JsonNode params) {
+        final ContextConfig config = ContextConfig.create().setEventLogger(new ContextEventLogger() {
+            @Override
+            public void handleEvent(com.absmartly.sdk.Context context, EventType event, Object data) {
+                if (event == EventType.Ready) {
+                    readyData = (ContextData) data;
+                } else if (event == EventType.Refresh) {
+                    refreshData = (ContextData) data;
+                }
+                loggedEvents.add(event.name().toLowerCase(Locale.ROOT));
+            }
+        });
         final Iterator<Map.Entry<String, JsonNode>> units = params.get("units").fields();
         while (units.hasNext()) {
             final Map.Entry<String, JsonNode> unit = units.next();
@@ -287,6 +358,19 @@ public class CrossSdkScenariosTest {
             actual.add(experiment);
         }
         assertEquals(where, names, actual);
+        assertEventExperiments(where + ": ready event data", expected, readyData);
+    }
+
+    private static void assertEventExperiments(String where, JsonNode expected, ContextData data) {
+        final List<String> names = new ArrayList<>();
+        for (final JsonNode experiment : expected) {
+            names.add(experiment.get("name").asText());
+        }
+        final List<String> logged = new ArrayList<>();
+        for (final Experiment experiment : data.experiments) {
+            logged.add(experiment.name);
+        }
+        assertEquals(where, names, logged);
     }
 
     private void assertPublishedExposures() throws IOException {

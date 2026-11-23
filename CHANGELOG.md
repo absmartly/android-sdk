@@ -27,6 +27,7 @@ The notes below compare this release with `main` before it, which built against 
 - `ABSmartlyAndroid`, the Android entry point, with `create(...)` and `builder()`. It creates the core SDK and a `SqliteAndroidLocalCache`, and closes both, its HTTP transport and its scheduler in `close()`.
 - `ABSmartlyAndroid.Builder.applicationVersion`, sent as the `X-Application-Version` header when it is a whole number (1 to 18 digits after trimming) and as `0` otherwise, because the collector only accepts whole numbers.
 - `ABSmartlyAndroid.Builder.securityProvider` for Android 6.0 and earlier.
+- Holdouts, from the core: an experiment covered by a holdout gives control values and records no exposure of its own for units the holdout holds out, and every exposing read records each covering holdout's exposure. Two-arm and three-arm holdouts are supported; overrides and matching assignment rules take precedence over a holdout. Payloads without holdouts behave and publish exactly as before. See "Holdouts" in the README.
 - Custom assignment rules and the `semver_eq`, `semver_gt`, `semver_gte`, `semver_lt` and `semver_lte` operators, from the core.
 - Consumer ProGuard/R8 rules for the JSON model classes and Jackson.
 
